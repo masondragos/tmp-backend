@@ -18,16 +18,23 @@ import quoteRoutes from "./routes/quoteRoutes";
 const app = express();
 
 // CORS configuration
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://mortgage-broker-app.vercel.app",
+  "https://www.themortgageplatform.com",
+  "https://themortgageplatform.com",
+  "https://api.themortgageplatform.com",
+];
+
+// Add Replit domain if available
+if (process.env.REPLIT_DEV_DOMAIN) {
+  allowedOrigins.push(`https://${process.env.REPLIT_DEV_DOMAIN}`);
+}
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "https://mortgage-broker-app.vercel.app",
-      "https://www.themortgageplatform.com",
-      "https://themortgageplatform.com",
-      "https://api.themortgageplatform.com",
-    ],
+    origin: allowedOrigins,
     credentials: true, // Allow cookies to be sent
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
@@ -61,10 +68,13 @@ app.get("/ping", (req, res) => {
   res.status(200).json({ message: "pong" });
 });
 
-const server = app.listen(4000, () =>
+const PORT = process.env.PORT || 5000;
+const HOST = '0.0.0.0';
+
+const server = app.listen(PORT, HOST, () =>
   console.log(`
-🚀 Server ready at: http://localhost:4000
-🔐 Google OAuth enabled
-🌐 CORS enabled for localhost:3000
+🚀 Server ready at: http://${HOST}:${PORT}
+🔐 Google OAuth ${process.env.GOOGLE_AUTH_CLIENT_ID ? 'enabled' : 'disabled (credentials missing)'}
+🌐 CORS configured
 ⭐️ Auth endpoints: /api/v1/auth/google, /api/v1/auth/google/callback, /api/v1/auth/logout, /api/v1/auth/me`)
 );
