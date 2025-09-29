@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  email      String   @unique
+  name       String?
+  password   String?
+  google_id  String?  @unique
+  avatar     String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  quotes     Quote[]
+}
+
+model Quote {
+  id                    Int                   @id @default(autoincrement())
+  created_at            DateTime              @default(now())
+  updated_at            DateTime              @updatedAt
+  user_id               Int
+  address               String?
+  loan_type             LoanType?
+  is_living_in_property Boolean
+  user                  User                  @relation(fields: [user_id], references: [id])
+  quoteApplicantInfo    Quote_Applicant_Info? @relation("QuoteToApplicantInfo")
+  quoteLoanDetails      Quote_Loan_Details?   @relation("QuoteToLoanDetails")
+  quotePriorities       Quote_Priorities?     @relation("QuoteToPriorities")
+  quoteRentalInfo       Quote_Rental_Info?    @relation("QuoteToRentalInfo")
+}
+
+model Quote_Applicant_Info {
+  id                     Int      @id @default(autoincrement())
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+  quote_id               Int      @unique
+  full_name              String?
+  citizenship            String?
+  company_name           String?
+  company_ein            String?
+  liquid_funds_available String?
+  properties_owned       Int?
+  total_equity_value     String?
+  total_debt_value       String?
+  credit_score           Int?
+  phone_number           String?
+  whats_most_important   String?
+  company_state          String?
+  quote                  Quote    @relation("QuoteToApplicantInfo", fields: [quote_id], references: [id])
+}
+
+model Quote_Loan_Details {
+  id                              Int       @id @default(autoincrement())
+  created_at                      DateTime  @default(now())
+  updated_at                      DateTime  @updatedAt
+  quote_id                        Int       @unique
+  purpose_of_loan                 String?
+  purchase_price                  String?
+  contract_close_date             DateTime?
+  required_close_date             DateTime?
+  has_rehab_funds_requested       Boolean?
+  after_repair_property_value     String?
+  exit_plan                       ExitPlan?
+  completed_fix_and_flips_2_years String?
+  as_is_property_value            String?
+  seller_concessions              Int?
+  assignment_fees                 Int?
+  has_tenant                      Boolean?
+  funding_reason                  String?
+  properties_owned                String?
+  property_purchase_date          DateTime?
+  mortgage_remaining              String?
+  current_property_value          String?
+  requested_loan_amount           String?
+  has_paid_rent_last_3_months     Boolean?
+  has_signed_lease                Boolean?
+  how_much_are_they_paying        String?
+  market_rent                     String?
+  what_needs_to_be_done           String?
+  how_will_you_fund_this         String?
+  rehab_amount_requested         String?
+  quote                           Quote     @relation("QuoteToLoanDetails", fields: [quote_id], references: [id])
+}
+
+model Quote_Rental_Info {
+  id                        Int      @id @default(autoincrement())
+  created_at                DateTime @default(now())
+  updated_at                DateTime @updatedAt
+  loan_amount               String?
+  monthly_rental_income     String?
+  annual_property_insurance String?
+  annual_property_taxes     String?
+  monthly_hoa_fee           String?
+  quote_id                  Int      @unique
+  quote                     Quote    @relation("QuoteToRentalInfo", fields: [quote_id], references: [id])
+}
+
+model Quote_Priorities {
+  id               Int      @id @default(autoincrement())
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  quote_id         Int      @unique
+  speed_of_closing Boolean?
+  low_fees         Boolean?
+  high_leverage    Boolean?
+  quote            Quote    @relation("QuoteToPriorities", fields: [quote_id], references: [id])
+}
+
+enum LoanType {
+  bridge_fix_and_flip
+  dscr_rental
+}
+
+enum ExitPlan {
+  refinance
+  sell
+}

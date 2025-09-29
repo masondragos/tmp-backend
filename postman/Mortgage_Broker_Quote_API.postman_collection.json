@@ -1,0 +1,477 @@
+{
+	"info": {
+		"_postman_id": "mortgage-broker-quote-api",
+		"name": "Mortgage Broker Quote API",
+		"description": "Complete API collection for mortgage broker quote management system. Includes all CRUD operations for quotes, applicant info, loan details, priorities, and rental info.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{authToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000/api",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "your-jwt-token-here",
+			"type": "string"
+		},
+		{
+			"key": "quoteId",
+			"value": "1",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Quote Management",
+			"item": [
+				{
+					"name": "Create Quote",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"address\": \"123 Main St, New York, NY 10001\",\n  \"is_living_in_property\": false,\n  \"loan_type\": \"bridge_fix_and_flip\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quotes",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes"]
+						},
+						"description": "Creates a new quote for a mortgage application.\n\n**Required Fields:**\n- `address`: Property address (string, optional)\n- `is_living_in_property`: Whether applicant will live in the property (boolean)\n- `loan_type`: Type of loan - \"bridge_fix_and_flip\" or \"dscr_rental\" (string, optional)\n\n**Auto-generated Fields:**\n- `id`: Unique quote identifier\n- `user_id`: ID of the authenticated user (from JWT token)\n- `created_at`: Timestamp when quote was created\n- `updated_at`: Timestamp when quote was last updated\n\n**Response:** Returns the created quote object with all fields."
+					}
+				},
+				{
+					"name": "Get Quote",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/quotes/{{quoteId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "{{quoteId}}"]
+						},
+						"description": "Retrieves a specific quote by its ID.\n\n**Parameters:**\n- `id`: Quote ID (integer, required in URL path)\n\n**Response:** Returns the quote object if found, 404 error if not found."
+					}
+				},
+				{
+					"name": "Update Quote",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"address\": \"456 Oak Ave, Los Angeles, CA 90210\",\n  \"is_living_in_property\": true,\n  \"loan_type\": \"dscr_rental\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quotes/{{quoteId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "{{quoteId}}"]
+						},
+						"description": "Updates an existing quote.\n\n**Parameters:**\n- `id`: Quote ID (integer, required in URL path)\n\n**Body Fields (all optional):**\n- `address`: Updated property address\n- `is_living_in_property`: Updated living status\n- `loan_type`: Updated loan type\n\n**Response:** Returns the updated quote object."
+					}
+				},
+				{
+					"name": "Get Complete Quote",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/quotes/{{quoteId}}/whole",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "{{quoteId}}", "whole"]
+						},
+						"description": "Retrieves a complete quote with all related data including applicant info, loan details, priorities, and rental info.\n\n**Parameters:**\n- `id`: Quote ID (integer, required in URL path)\n\n**Response:** Returns the quote object with nested objects for:\n- `quoteApplicantInfo`: Applicant information\n- `quoteLoanDetails`: Loan details\n- `quoteRentalInfo`: Rental information\n- `quotePriorities`: Priority settings\n\n**Use Case:** Perfect for displaying a complete quote summary on the frontend."
+					}
+				}
+			],
+			"description": "Core quote management operations - create, read, update, and get complete quote data."
+		},
+		{
+			"name": "Applicant Information",
+			"item": [
+				{
+					"name": "Create Applicant Info",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"full_name\": \"John Smith\",\n  \"citizenship\": \"US Citizen\",\n  \"company_ein\": \"12-3456789\",\n  \"company_name\": \"Smith Investments LLC\",\n  \"liquid_funds_available\": \"$500,000\",\n  \"credit_score\": 750,\n  \"phone_number\": \"(555) 123-4567\",\n  \"properties_owned\": 3,\n  \"company_state\": \"California\",\n  \"quote_id\": 1,\n  \"whats_most_important\": \"Fast closing and competitive rates\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quotes/applicant-info",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "applicant-info"]
+						},
+						"description": "Creates applicant information for a specific quote.\n\n**Required Fields:**\n- `full_name`: Full legal name (string)\n- `citizenship`: Citizenship status (string)\n- `company_ein`: Company EIN/Tax ID (string)\n- `company_name`: Company name (string, max 100 chars)\n- `liquid_funds_available`: Available liquid funds (string)\n- `credit_score`: Credit score (integer, 300-850)\n- `phone_number`: Contact phone number (string)\n- `properties_owned`: Number of properties owned (integer, min 0)\n- `company_state`: State where company is registered (string)\n- `quote_id`: Associated quote ID (integer)\n- `whats_most_important`: Priority description (string)\n\n**Response:** Returns the created applicant info object."
+					}
+				},
+				{
+					"name": "Get Applicant Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/quotes/{{quoteId}}/applicant-info",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "{{quoteId}}", "applicant-info"]
+						},
+						"description": "Retrieves applicant information for a specific quote.\n\n**Parameters:**\n- `id`: Quote ID (integer, required in URL path)\n\n**Response:** Returns the applicant info object if found, 404 error if not found."
+					}
+				},
+				{
+					"name": "Update Applicant Info",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"full_name\": \"John A. Smith\",\n  \"credit_score\": 760,\n  \"liquid_funds_available\": \"$600,000\",\n  \"properties_owned\": 4,\n  \"whats_most_important\": \"Fast closing, competitive rates, and excellent customer service\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quotes/{{quoteId}}/applicant-info",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "{{quoteId}}", "applicant-info"]
+						},
+						"description": "Updates existing applicant information.\n\n**Parameters:**\n- `id`: Quote ID (integer, required in URL path)\n\n**Body Fields:** All fields are optional for updates. Only include fields you want to change.\n\n**Response:** Returns the updated applicant info object."
+					}
+				}
+			],
+			"description": "Manage applicant information including personal details, company info, and financial data."
+		},
+		{
+			"name": "Loan Details",
+			"item": [
+				{
+					"name": "Create Fix & Flip Loan Details (Purchase)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"purpose_of_loan\": \"purchase\",\n  \"purchase_price\": \"$450,000\",\n  \"contract_close_date\": \"2024-02-15\",\n  \"after_repair_property_value\": \"$650,000\",\n  \"exit_plan\": \"sell\",\n  \"completed_fix_and_flips_2_years\": \"5\",\n  \"as_is_property_value\": \"$400,000\",\n  \"has_rehab_funds_requested\": true,\n  \"seller_concessions\": 5000,\n  \"assignment_fees\": false,\n  \"quote_id\": 1,\n  \"rehab_amount_requested\": \"$75,000\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quotes/loan-details",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "loan-details"]
+						},
+						"description": "Creates loan details for a Fix & Flip purchase loan.\n\n**Required Fields:**\n- `purpose_of_loan`: \"purchase\" (string)\n- `purchase_price`: Property purchase price (string)\n- `contract_close_date`: Expected closing date (string, YYYY-MM-DD)\n- `after_repair_property_value`: ARV after repairs (string)\n- `exit_plan`: \"refiance\" or \"sell\" (enum)\n- `completed_fix_and_flips_2_years`: Number of completed flips (string)\n- `as_is_property_value`: Current property value (string)\n- `has_rehab_funds_requested`: Whether requesting rehab funds (boolean)\n- `quote_id`: Associated quote ID (integer)\n\n**Conditional Fields (if has_rehab_funds_requested = true):**\n- `rehab_amount_requested`: Amount of rehab funds needed (string)\n\n**Optional Fields:**\n- `seller_concessions`: Seller concessions amount (integer)\n- `assignment_fees`: Whether assignment fees apply (boolean)\n\n**Note:** The system automatically determines the schema based on the quote's loan_type and the provided purpose_of_loan."
+					}
+				},
+				{
+					"name": "Create Fix & Flip Loan Details (Refinance)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"purpose_of_loan\": \"refinance\",\n  \"purchase_price\": \"$400,000\",\n  \"as_is_property_value\": \"$450,000\",\n  \"contract_close_date\": \"2024-03-01\",\n  \"has_rehab_funds_requested\": true,\n  \"after_repair_property_value\": \"$650,000\",\n  \"exit_plan\": \"sell\",\n  \"completed_fix_and_flips_2_years\": \"3\",\n  \"funding_reason\": \"Need additional capital for new investment property\",\n  \"quote_id\": 1,\n  \"rehab_amount_requested\": \"$50,000\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quotes/loan-details",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "loan-details"]
+						},
+						"description": "Creates loan details for a Fix & Flip refinance loan.\n\n**Required Fields:**\n- `purpose_of_loan`: \"refinance\" (string)\n- `purchase_price`: Original purchase price (string)\n- `as_is_property_value`: Current property value (string)\n- `contract_close_date`: Expected closing date (string)\n- `has_rehab_funds_requested`: Whether requesting rehab funds (boolean)\n- `after_repair_property_value`: ARV after repairs (string)\n- `exit_plan`: \"refiance\" or \"sell\" (enum)\n- `completed_fix_and_flips_2_years`: Number of completed flips (string)\n- `funding_reason`: Reason for refinancing (string)\n- `quote_id`: Associated quote ID (integer)\n\n**Conditional Fields (if has_rehab_funds_requested = true):**\n- `rehab_amount_requested`: Amount of rehab funds needed (string)"
+					}
+				},
+				{
+					"name": "Create DSCR Loan Details (Purchase)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"purpose_of_loan\": \"purchase\",\n  \"purchase_price\": \"$600,000\",\n  \"contract_close_date\": \"2024-02-20\",\n  \"has_rehab_funds_requested\": false,\n  \"has_tenant\": true,\n  \"properties_owned\": \"2\",\n  \"quote_id\": 1,\n  \"how_much_are_they_paying\": \"$3,500\",\n  \"has_signed_lease\": \"Yes\",\n  \"has_paid_rent_last_3_months\": \"Yes\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quotes/loan-details",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "loan-details"]
+						},
+						"description": "Creates loan details for a DSCR (Debt Service Coverage Ratio) purchase loan.\n\n**Required Fields:**\n- `purpose_of_loan`: \"purchase\" (string)\n- `purchase_price`: Property purchase price (string)\n- `contract_close_date`: Expected closing date (string)\n- `has_rehab_funds_requested`: Whether requesting rehab funds (boolean)\n- `has_tenant`: Whether property has existing tenant (boolean)\n- `properties_owned`: Number of properties owned (string)\n- `quote_id`: Associated quote ID (integer)\n\n**Conditional Fields (if has_rehab_funds_requested = true):**\n- `what_needs_to_be_done`: Description of rehab work (string)\n- `how_will_you_fund_this`: Funding plan for rehab (string)\n\n**Conditional Fields (if has_tenant = true):**\n- `how_much_are_they_paying`: Current rent amount (string)\n- `has_signed_lease`: Whether tenant has signed lease (string)\n- `has_paid_rent_last_3_months`: Rent payment history (string)\n\n**Conditional Fields (if has_tenant = false):**\n- `market_rent`: Expected market rent (string)"
+					}
+				},
+				{
+					"name": "Create DSCR Loan Details (Refinance No Cash)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"purpose_of_loan\": \"refinance-no-cash\",\n  \"purchase_price\": \"$500,000\",\n  \"property_purchase_date\": \"2020-05-15\",\n  \"mortgage_remaining\": \"$380,000\",\n  \"has_rehab_funds_requested\": false,\n  \"has_tenant\": false,\n  \"properties_owned\": \"3\",\n  \"quote_id\": 1,\n  \"market_rent\": \"$4,200\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quotes/loan-details",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "loan-details"]
+						},
+						"description": "Creates loan details for a DSCR refinance with no cash out.\n\n**Required Fields:**\n- `purpose_of_loan`: \"refinance-no-cash\" (string)\n- `purchase_price`: Original purchase price (string)\n- `property_purchase_date`: When property was purchased (string, YYYY-MM-DD)\n- `mortgage_remaining`: Remaining mortgage balance (string)\n- `has_rehab_funds_requested`: Whether requesting rehab funds (boolean)\n- `has_tenant`: Whether property has existing tenant (boolean)\n- `properties_owned`: Number of properties owned (string)\n- `quote_id`: Associated quote ID (integer)\n\n**Conditional Fields:** Same as DSCR Purchase based on has_rehab_funds_requested and has_tenant values."
+					}
+				},
+				{
+					"name": "Create DSCR Loan Details (Refinance Cash Out)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"purpose_of_loan\": \"refinance-cash-out\",\n  \"purchase_price\": \"$550,000\",\n  \"property_purchase_date\": \"2019-08-10\",\n  \"mortgage_remaining\": \"$320,000\",\n  \"current_property_value\": \"$750,000\",\n  \"requested_loan_amount\": \"$500,000\",\n  \"has_rehab_funds_requested\": true,\n  \"has_tenant\": true,\n  \"quote_id\": 1,\n  \"what_needs_to_be_done\": \"Kitchen renovation and bathroom updates\",\n  \"how_will_you_fund_this\": \"Personal savings and loan proceeds\",\n  \"how_much_are_they_paying\": \"$4,500\",\n  \"has_signed_lease\": \"Yes\",\n  \"has_paid_rent_last_3_months\": \"Yes\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quotes/loan-details",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "loan-details"]
+						},
+						"description": "Creates loan details for a DSCR refinance with cash out.\n\n**Required Fields:**\n- `purpose_of_loan`: \"refinance-cash-out\" (string)\n- `purchase_price`: Original purchase price (string)\n- `property_purchase_date`: When property was purchased (string)\n- `mortgage_remaining`: Remaining mortgage balance (string)\n- `current_property_value`: Current market value (string)\n- `requested_loan_amount`: Total loan amount requested (string)\n- `has_rehab_funds_requested`: Whether requesting rehab funds (boolean)\n- `has_tenant`: Whether property has existing tenant (boolean)\n- `quote_id`: Associated quote ID (integer)\n\n**Conditional Fields:** Same as other DSCR loans based on has_rehab_funds_requested and has_tenant values."
+					}
+				},
+				{
+					"name": "Get Loan Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/quotes/{{quoteId}}/loan-details",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "{{quoteId}}", "loan-details"]
+						},
+						"description": "Retrieves loan details for a specific quote.\n\n**Parameters:**\n- `id`: Quote ID (integer, required in URL path)\n\n**Response:** Returns the loan details object if found, 404 error if not found."
+					}
+				},
+				{
+					"name": "Update Loan Details",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"purpose_of_loan\": \"purchase\",\n  \"has_rehab_funds_requested\": true,\n  \"quote_id\": 1,\n  \"purchase_price\": \"$475,000\",\n  \"after_repair_property_value\": \"$675,000\",\n  \"rehab_amount_requested\": \"$80,000\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quotes/{{quoteId}}/loan-details",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "{{quoteId}}", "loan-details"]
+						},
+						"description": "Updates existing loan details.\n\n**Parameters:**\n- `id`: Quote ID (integer, required in URL path)\n\n**Body Fields:** Include the fields you want to update. The system will validate based on the quote's loan_type and the provided purpose_of_loan.\n\n**Response:** Returns the updated loan details object."
+					}
+				}
+			],
+			"description": "Manage loan details for different loan types (Fix & Flip and DSCR) with various purposes (purchase, refinance)."
+		},
+		{
+			"name": "Priorities",
+			"item": [
+				{
+					"name": "Create Priorities",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"quote_id\": 1,\n  \"fast_closing\": true,\n  \"low_rates\": false,\n  \"flexible_terms\": true,\n  \"excellent_service\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quotes/priorities",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "priorities"]
+						},
+						"description": "Creates priority settings for a quote.\n\n**Required Fields:**\n- `quote_id`: Associated quote ID (integer)\n\n**Priority Fields (all boolean):**\n- `fast_closing`: Priority on fast closing\n- `low_rates`: Priority on low interest rates\n- `flexible_terms`: Priority on flexible loan terms\n- `excellent_service`: Priority on excellent customer service\n\n**Response:** Returns the created priorities object."
+					}
+				},
+				{
+					"name": "Get Priorities",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/quotes/{{quoteId}}/priorities",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "{{quoteId}}", "priorities"]
+						},
+						"description": "Retrieves priority settings for a specific quote.\n\n**Parameters:**\n- `id`: Quote ID (integer, required in URL path)\n\n**Response:** Returns the priorities object if found, 404 error if not found."
+					}
+				},
+				{
+					"name": "Update Priorities",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fast_closing\": false,\n  \"low_rates\": true,\n  \"flexible_terms\": true,\n  \"excellent_service\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quotes/{{quoteId}}/priorities",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "{{quoteId}}", "priorities"]
+						},
+						"description": "Updates existing priority settings.\n\n**Parameters:**\n- `id`: Quote ID (integer, required in URL path)\n\n**Body Fields:** All priority fields are optional for updates. Only include fields you want to change.\n\n**Response:** Returns the updated priorities object."
+					}
+				}
+			],
+			"description": "Manage customer priorities and preferences for loan processing."
+		},
+		{
+			"name": "Rental Information",
+			"item": [
+				{
+					"name": "Create Rental Info",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"quote_id\": 1,\n  \"market_rent\": \"$3,200\",\n  \"rental_income_verification\": \"Bank statements and lease agreement\",\n  \"property_management\": \"Self-managed\",\n  \"vacancy_rate\": \"5%\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quotes/rental-info",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "rental-info"]
+						},
+						"description": "Creates rental information for a quote.\n\n**Required Fields:**\n- `quote_id`: Associated quote ID (integer)\n\n**Rental Fields:**\n- `market_rent`: Expected market rent (string)\n- `rental_income_verification`: How rental income is verified (string)\n- `property_management`: Who manages the property (string)\n- `vacancy_rate`: Expected vacancy rate (string)\n\n**Response:** Returns the created rental info object."
+					}
+				},
+				{
+					"name": "Get Rental Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/quotes/{{quoteId}}/rental-info",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "{{quoteId}}", "rental-info"]
+						},
+						"description": "Retrieves rental information for a specific quote.\n\n**Parameters:**\n- `id`: Quote ID (integer, required in URL path)\n\n**Response:** Returns the rental info object if found, 404 error if not found."
+					}
+				},
+				{
+					"name": "Update Rental Info",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"market_rent\": \"$3,400\",\n  \"rental_income_verification\": \"Bank statements, lease agreement, and tax returns\",\n  \"property_management\": \"Professional management company\",\n  \"vacancy_rate\": \"3%\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quotes/{{quoteId}}/rental-info",
+							"host": ["{{baseUrl}}"],
+							"path": ["quotes", "{{quoteId}}", "rental-info"]
+						},
+						"description": "Updates existing rental information.\n\n**Parameters:**\n- `id`: Quote ID (integer, required in URL path)\n\n**Body Fields:** All rental fields are optional for updates. Only include fields you want to change.\n\n**Response:** Returns the updated rental info object."
+					}
+				}
+			],
+			"description": "Manage rental property information and income verification details."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-generate timestamp for demo purposes",
+					"pm.globals.set('timestamp', new Date().toISOString());"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-save quote ID from create responses",
+					"if (pm.response.code === 201 && pm.response.json().id) {",
+					"    pm.collectionVariables.set('quoteId', pm.response.json().id);",
+					"}"
+				]
+			}
+		}
+	]
+}
