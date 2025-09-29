@@ -17,9 +17,10 @@ export const initializeGoogleStrategy = () => {
     !process.env.GOOGLE_AUTH_CLIENT_ID ||
     !process.env.GOOGLE_AUTH_CLIENT_SECRET
   ) {
-    throw new Error(
-      "Google OAuth credentials are missing from environment variables"
+    console.warn(
+      "⚠️  Google OAuth credentials are missing - OAuth login will not be available"
     );
+    return;
   }
   
   const { callbackURL } = getUrls();

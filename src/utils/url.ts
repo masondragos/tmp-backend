@@ -1,9 +1,5 @@
 export const getUrls = () => {
-  const stage = process.env.STAGE;
-
-  if (!stage) {
-    throw new Error("STAGE is not set");
-  }
+  const stage = process.env.STAGE || "dev";
 
   const callbackURL =
     stage === "dev"
