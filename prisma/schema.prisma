@@ -32,6 +32,7 @@ model Quote {
   quoteLoanDetails      Quote_Loan_Details?   @relation("QuoteToLoanDetails")
   quotePriorities       Quote_Priorities?     @relation("QuoteToPriorities")
   quoteRentalInfo       Quote_Rental_Info?    @relation("QuoteToRentalInfo")
+  lenderMatches         Quote_Lender_Match[]
 }
 
 model Quote_Applicant_Info {
@@ -119,4 +120,66 @@ enum LoanType {
 enum ExitPlan {
   refinance
   sell
+}
+
+model Lender {
+  id            Int                    @id @default(autoincrement())
+  company_name  String
+  email         String                 @unique
+  password      String?
+  contact_name  String?
+  phone_number  String?
+  created_at    DateTime               @default(now())
+  updated_at    DateTime               @updatedAt
+  loan_products Lender_Loan_Product[]
+  quote_matches Quote_Lender_Match[]
+}
+
+model Lender_Loan_Product {
+  id                      Int      @id @default(autoincrement())
+  lender_id               Int
+  loan_type               LoanType
+  min_loan_amount         Decimal?
+  max_loan_amount         Decimal?
+  appraisal_required      Boolean  @default(true)
+  appraisal_requirements  String?
+  citizen_requirements    String[]
+  seasoning_period_months Int?
+  states_funded           String[]
+  min_credit_score        Int?
+  max_ltv_percentage      Decimal?
+  accepts_rehab_loans     Boolean  @default(false)
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+  lender                  Lender   @relation(fields: [lender_id], references: [id])
+
+  @@index([lender_id])
+  @@index([loan_type])
+}
+
+model Quote_Lender_Match {
+  id                      Int         @id @default(autoincrement())
+  quote_id                Int
+  lender_id               Int
+  match_status            MatchStatus @default(pending)
+  disqualification_reason String?
+  term_sheet_requested    Boolean     @default(false)
+  term_sheet_received     Boolean     @default(false)
+  created_at              DateTime    @default(now())
+  updated_at              DateTime    @updatedAt
+  quote                   Quote       @relation(fields: [quote_id], references: [id])
+  lender                  Lender      @relation(fields: [lender_id], references: [id])
+
+  @@unique([quote_id, lender_id])
+  @@index([quote_id])
+  @@index([lender_id])
+}
+
+enum MatchStatus {
+  pending
+  qualified
+  disqualified
+  term_sheet_requested
+  term_sheet_received
+  declined
 }
