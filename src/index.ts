@@ -14,6 +14,7 @@ import { getCookieOptions } from "./utils/cookies";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 import quoteRoutes from "./routes/quoteRoutes";
+import lenderRoutes from "./routes/lenderRoutes";
 
 const app = express();
 
@@ -64,6 +65,7 @@ app.use(passport.session());
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1", userRoutes);
 app.use("/api/v1/quotes", quoteRoutes);
+app.use("/api/v1/lenders", lenderRoutes);
 app.get("/ping", (req, res) => {
   res.status(200).json({ message: "pong" });
 });
