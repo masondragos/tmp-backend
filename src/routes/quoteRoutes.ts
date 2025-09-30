@@ -17,6 +17,8 @@ import {
   getQuoteRentalInfo,
   updateQuoteRentalInfo,
   getQuoteAsWhole,
+  matchQuoteWithLenders,
+  getQuoteLenderMatches,
 } from "../controllers/quoteController";
 import { verifyJWT } from "../middleware/auth";
 
@@ -51,5 +53,9 @@ router.put("/:id/priorities", updateQuotePriorities);
 router.post("/rental-info", createQuoteRentalInfo);
 router.get("/:id/rental-info", getQuoteRentalInfo);
 router.put("/:id/rental-info", updateQuoteRentalInfo);
+
+// Lender matching routes
+router.post("/:id/match-lenders", matchQuoteWithLenders);
+router.get("/:id/lender-matches", getQuoteLenderMatches);
 
 export default router;

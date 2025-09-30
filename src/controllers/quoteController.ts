@@ -391,3 +391,69 @@ export const getQuoteAsWhole = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// Lender matching endpoints
+import { matchQuoteToLenders, saveMatchResults, getMatchesForQuote } from '../services/lenderMatchingService';
+
+export const matchQuoteWithLenders = async (req: Request, res: Response) => {
+  try {
+    const quoteId = parseInt(req.params.id);
+
+    if (isNaN(quoteId) || quoteId <= 0) {
+      return res.status(400).json({ error: 'Invalid quote ID' });
+    }
+
+    const quote = await prisma.quote.findUnique({
+      where: { id: quoteId },
+    });
+
+    if (!quote) {
+      return res.status(404).json({ error: 'Quote not found' });
+    }
+
+    const matchResults = await matchQuoteToLenders(quoteId);
+    await saveMatchResults(quoteId, matchResults);
+
+    const qualifiedLenders = matchResults.filter(r => r.match_status === 'qualified');
+    const disqualifiedLenders = matchResults.filter(r => r.match_status === 'disqualified');
+
+    res.json({
+      quote_id: quoteId,
+      total_lenders: matchResults.length,
+      qualified_count: qualifiedLenders.length,
+      disqualified_count: disqualifiedLenders.length,
+      qualified_lenders: qualifiedLenders,
+      disqualified_lenders: disqualifiedLenders,
+    });
+  } catch (error) {
+    console.error('Error matching quote with lenders:', error);
+    res.status(500).json({ error: 'Failed to match quote with lenders' });
+  }
+};
+
+export const getQuoteLenderMatches = async (req: Request, res: Response) => {
+  try {
+    const quoteId = parseInt(req.params.id);
+
+    if (isNaN(quoteId) || quoteId <= 0) {
+      return res.status(400).json({ error: 'Invalid quote ID' });
+    }
+
+    const matches = await getMatchesForQuote(quoteId);
+
+    const qualified = matches.filter(m => m.match_status === 'qualified');
+    const disqualified = matches.filter(m => m.match_status === 'disqualified');
+
+    res.json({
+      quote_id: quoteId,
+      total_matches: matches.length,
+      qualified_count: qualified.length,
+      disqualified_count: disqualified.length,
+      qualified_lenders: qualified,
+      disqualified_lenders: disqualified,
+    });
+  } catch (error) {
+    console.error('Error getting quote lender matches:', error);
+    res.status(500).json({ error: 'Failed to get lender matches' });
+  }
+};
