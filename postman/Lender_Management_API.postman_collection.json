@@ -1,0 +1,284 @@
+{
+	"info": {
+		"_postman_id": "lender-mgmt-api",
+		"name": "Lender Management API",
+		"description": "Complete collection for Lender Management API endpoints including authentication, CRUD operations, and invitation system",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Lender Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{lenderEmail}}\",\n  \"password\": \"{{lenderPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/lender/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"lender",
+								"login"
+							]
+						},
+						"description": "Login for existing lenders"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current Lender (Me)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/v1/lender/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"lender",
+								"me"
+							]
+						},
+						"description": "Get current authenticated lender details"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication related endpoints"
+		},
+		{
+			"name": "Lender Invitation",
+			"item": [
+				{
+					"name": "Invite Lender",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"newlender@example.com\",\n  \"name\": \"Jane Smith\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/lender/invite",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"lender",
+								"invite"
+							]
+						},
+						"description": "Send invitation email to new lender"
+					},
+					"response": []
+				},
+				{
+					"name": "Register Lender",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"{{lenderInvitationToken}}\",\n  \"password\": \"newpassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/lender/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"lender",
+								"register"
+							]
+						},
+						"description": "Complete lender registration with password"
+					},
+					"response": []
+				}
+			],
+			"description": "Lender invitation and registration flow"
+		},
+		{
+			"name": "Lender Management (Employee Access)",
+			"item": [
+				{
+					"name": "Get All Lenders",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/v1/lender?page=1&limit=10&search={{searchTerm}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"lender"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number for pagination"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Number of items per page"
+								},
+								{
+									"key": "search",
+									"value": "{{searchTerm}}",
+									"description": "Search term for lender name"
+								}
+							]
+						},
+						"description": "Get paginated list of all lenders with search functionality"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Lender by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/v1/lender/{{lenderId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"lender",
+								"{{lenderId}}"
+							]
+						},
+						"description": "Get specific lender details by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Disable Lender",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/v1/lender/{{lenderId}}/disable",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"lender",
+								"{{lenderId}}",
+								"disable"
+							]
+						},
+						"description": "Soft delete - disable a lender"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Lender",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/v1/lender/{{lenderId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"lender",
+								"{{lenderId}}"
+							]
+						},
+						"description": "Hard delete - permanently remove a lender"
+					},
+					"response": []
+				}
+			],
+			"description": "Employee-accessible lender management operations"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:4000/api",
+			"type": "string"
+		}
+	]
+}

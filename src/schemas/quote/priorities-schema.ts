@@ -5,4 +5,5 @@ export const prioritiesSchema = z.object({
   low_fees: z.boolean(),
   high_leverage: z.boolean(),
   quote_id: z.number().int(),
+  comments: z.string().optional(),
 });

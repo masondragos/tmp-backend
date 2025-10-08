@@ -1,31 +1,33 @@
-import express from 'express';
-import {
-  registerLender,
-  loginLender,
-  getLenderProfile,
-  updateLender,
-  getAllLenders,
-  createLoanProduct,
-  updateLoanProduct,
-  deleteLoanProduct,
-  getLenderLoanProducts,
-} from '../controllers/lenderController';
+import { Router } from 'express';
+import { verifyJWT } from '../middleware/auth';
+import { requireAdmin, requireEmployee } from '../middleware/adminAuth';
+import { createLender, deleteLender, disableLender, getLender, getLenders, getMe, getLenderStats, inviteLender, login } from '../controllers/lenderController';
 
-const router = express.Router();
+const router = Router();
 
-// Lender authentication
-router.post('/register', registerLender);
-router.post('/login', loginLender);
+// Employee invitation routes (public)
+router.post('/invite', inviteLender);
 
-// Lender management
-router.get('/', getAllLenders);
-router.get('/:id', getLenderProfile);
-router.put('/:id', updateLender);
+// Employee registration (public - with valid token)
+router.post('/register', createLender);
+router.post('/login', login)
+// Employee management routes (protected - admin only)
+router.use(verifyJWT); // Apply JWT middleware to all routes below
 
-// Loan product management
-router.get('/:lenderId/loan-products', getLenderLoanProducts);
-router.post('/:lenderId/loan-products', createLoanProduct);
-router.put('/loan-products/:productId', updateLoanProduct);
-router.delete('/loan-products/:productId', deleteLoanProduct);
+router.get('/me', getMe)
+router.get('/stats', getLenderStats);
+router.use(requireEmployee); // Apply admin role check to all routes below
+
+// Get all employees with pagination and search
+router.get('/', getLenders);
+
+// Get single employee by ID
+router.get('/:id', getLender);
+
+// Disable employee (soft delete)
+router.patch('/:id/disable', disableLender);
+
+// Delete employee (hard delete)
+router.delete('/:id', deleteLender);
 
 export default router;

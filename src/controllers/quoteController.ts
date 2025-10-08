@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, QuoteStatus } from "@prisma/client";
 import { withAccelerate } from "@prisma/extension-accelerate";
+import { emailService } from '../services/emailService';
+import { PaginationService } from '../utils/pagination';
 import { quoteSchema, quoteUpdateSchema } from "../schemas/quote/quote-schema";
 import {
   applicantSchema,
@@ -12,21 +14,22 @@ import {
 } from "../schemas/quote/loan-details-schema";
 import { prioritiesSchema } from "../schemas/quote/priorities-schema";
 import { rentalInfoSchema } from "../schemas/quote/rental-info-schema";
+import { newTermsSheetSchema } from "../schemas/quote/shortened-quote";
 
 const prisma = new PrismaClient().$extends(withAccelerate());
 // Step till signin/signup
 export const createQuote = async (req: Request, res: Response) => {
   console.log("Calling create quote")
   try {
-    const body = quoteSchema.safeParse(req.body);
-    if (!body.success) {
-      return res.status(400).json({ error: body.error.message });
-    }
+  const body = quoteSchema.safeParse(req.body);
+  if (!body.success) {
+      return res.status(400).json({ error: body.error.message })  ;
+  }
     
-    const quote = await prisma.quote.create({
-      data: { ...body.data },
-    });
-    res.status(201).json(quote);
+  const quote = await prisma.quote.create({
+      data: { ...body.data, active_step: "applicant_info" },
+  });
+  res.status(201).json(quote);
   } catch (error) {
     console.error("Error creating quote:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -35,13 +38,13 @@ export const createQuote = async (req: Request, res: Response) => {
 
 export const getQuote = async (req: Request, res: Response) => {
   try {
-    const quote = await prisma.quote.findUnique({
-      where: { id: parseInt(req.params.id) },
-    });
+  const quote = await prisma.quote.findUnique({
+    where: { id: parseInt(req.params.id) },
+  });
     if (!quote) {
       return res.status(404).json({ error: "Quote not found" });
     }
-    res.status(200).json(quote);
+  res.status(200).json(quote);
   } catch (error) {
     console.error("Error getting quote:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -52,40 +55,106 @@ export const getAllQuotes = async (req: Request, res: Response) => {
   try {
     // Get user ID from JWT token (set by verifyJWT middleware)
     const userId = (req as any).user?.id;
+    const status = req.query.status as string;
     
     if (!userId) {
       return res.status(401).json({ error: "User not authenticated" });
     }
 
-    const quotes = await prisma.quote.findMany({
-      where: { user_id: parseInt(userId) },
-      orderBy: { created_at: 'desc' }, // Most recent first
-      include: {
-        quoteApplicantInfo: true,
-        quoteLoanDetails: true,
-        quoteRentalInfo: true,
-        quotePriorities: true,
-      },
+    // Create where clause with user filter and status filter
+    const where: any = { user_id: parseInt(userId) };
+    if (status) {
+      if(status === "submitted"){
+        where.is_draft = false;
+      }
+      if(status === "draft"){
+        where.is_draft = true;
+      }
+    }
+
+    const result = await PaginationService.paginate(
+      prisma.quote,
+      req,
+      {
+        pagination: {
+          page: req.query.page as string,
+          limit: req.query.limit as string,
+        },
+        search: {
+          search: req.query.search as string,
+          searchFields: ['address']
+        },
+        where,
+        orderBy: { created_at: 'desc' },
+        include: {
+          quoteApplicantInfo: true,
+          quoteLoanDetails: true,
+          quoteRentalInfo: true,
+          quotePriorities: true,
+        }
+      }
+    );
+
+    // Get total quotes for user (regardless of filters)
+    const totalForUser = await prisma.quote.count({ 
+      where: { user_id: parseInt(userId) } 
     });
 
-    res.status(200).json(quotes);
+    res.status(200).json({
+      ...result,
+      meta: {
+        ...result.meta,
+        total_for_user: totalForUser,
+      }
+    });
   } catch (error) {
     console.error("Error getting all quotes:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
+export const getQuotesCountByStatus = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+    
+    const [quotesCountByDraft, totalCount] = await Promise.all([
+      prisma.quote.groupBy({
+        by: ['is_draft'],
+        where: { user_id: parseInt(userId) },
+        _count: { _all: true },
+      }),
+      prisma.quote.count({ where: { user_id: parseInt(userId) } })
+    ]);
+    
+    const draftCounts = quotesCountByDraft.reduce((acc: Record<string, number>, row: any) => {
+      const key = row.is_draft === true ? 'draft' : 'final';
+      acc[key] = row._count._all;
+      return acc;
+    }, {});
+    
+    res.status(200).json({
+      ...draftCounts,
+      total: totalCount
+    });
+  } catch (error) {
+    console.error("Error getting quotes count by status:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
 export const updateQuote = async (req: Request, res: Response) => {
   try {
     const body = quoteUpdateSchema.safeParse(req.body);
     if (!body.success) {
-      return res.status(400).json({ error: body.error.message });
+        return res.status(400).json({ error: body.error.message });
     }
-    const quote = await prisma.quote.update({
-      where: { id: parseInt(req.params.id) },
-      data: { ...body.data },
-    });
-    res.status(200).json(quote);
+  const quote = await prisma.quote.update({
+    where: { id: parseInt(req.params.id) },
+    data: { ...body.data },
+  });
+  res.status(200).json(quote);
   } catch (error) {
     console.error("Error updating quote:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -102,13 +171,13 @@ export const createQuoteApplicantInfo = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Properties owned is required" });
     }
     const body = getApplicantInfoSchema(properties_owned).safeParse(req.body);
-    if (!body.success) {
-      return res.status(400).json({ error: body.error.message });
-    }
-    const quoteApplicantInfo = await prisma.quote_Applicant_Info.create({
-      data: { ...body.data },
-    });
-    res.status(201).json(quoteApplicantInfo);
+  if (!body.success) {
+    return res.status(400).json({ error: body.error.message });
+  }
+  const quoteApplicantInfo = await prisma.quote_Applicant_Info.create({
+    data: { ...body.data },
+  });
+  res.status(201).json(quoteApplicantInfo);
   } catch (error) {
     console.error("Error creating quote applicant info:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -268,6 +337,12 @@ export const createQuotePriorities = async (req: Request, res: Response) => {
     const quotePriorities = await prisma.quote_Priorities.create({
       data: { ...body.data },
     });
+    if(quote.loan_type === "bridge_fix_and_flip") {
+      await prisma.quote.update({
+        where: { id: body.data.quote_id },
+        data: { is_draft: false, status: "awaiting" },
+      });
+    }
     return res.status(201).json(quotePriorities);
   } catch (error) {
     console.error("Error creating quote priorities:", error);
@@ -325,6 +400,10 @@ export const createQuoteRentalInfo = async (req: Request, res: Response) => {
     }
     const quoteRentalInfo = await prisma.quote_Rental_Info.create({
       data: { ...body.data },
+    });
+    await prisma.quote.update({
+      where: { id: body.data.quote_id },
+      data: { is_draft: false, status: "awaiting" },
     });
     return res.status(201).json(quoteRentalInfo);
   } catch (error) {
@@ -392,68 +471,110 @@ export const getQuoteAsWhole = async (req: Request, res: Response) => {
   }
 };
 
-// Lender matching endpoints
-import { matchQuoteToLenders, saveMatchResults, getMatchesForQuote } from '../services/lenderMatchingService';
 
-export const matchQuoteWithLenders = async (req: Request, res: Response) => {
+export const createShortenedQuote = async (req: Request, res: Response) => {
   try {
-    const quoteId = parseInt(req.params.id);
-
-    if (isNaN(quoteId) || quoteId <= 0) {
-      return res.status(400).json({ error: 'Invalid quote ID' });
+    const {loan_type} = req.body;
+    if(!loan_type) {
+      return res.status(400).json({ error: "Loan type is required" });
+    }
+    const body = newTermsSheetSchema.safeParse(req.body);
+    if (!body.success) {
+      return res.status(400).json({ error: body.error.message });
+    }
+    const _quotePayload = {
+      address: body.data.property_address,
+      loan_type: loan_type,
+      is_living_in_property: false,
+      is_draft:false,
+      property_type: body.data.property_type,
+      user_id: body.data.user_id,
+      status: QuoteStatus.awaiting,
+    }
+    const quote = await prisma.quote.create({
+      data: _quotePayload,
+    });
+    const _quoteApplicantInfoPayload = {
+      full_name: body.data.full_name,
+      phone_number: body.data.phone_number,
+      credit_score: Number(body.data.credit_score),
+      property_state: body.data.property_state,
+      quote_id: quote.id,
+    }
+    
+    const _quoteLoanDetailsPayload = {
+      purchase_price: body.data.purchase_price,
+      rehab_amount_requested: body.data.rehab_amount_requested,
+      after_repair_property_value: body.data.after_repair_property_value,
+      requested_loan_amount: body.data.requested_loan_amount,
+      quote_id: quote.id,
     }
 
-    const quote = await prisma.quote.findUnique({
-      where: { id: quoteId },
-    });
-
-    if (!quote) {
-      return res.status(404).json({ error: 'Quote not found' });
+    const _quoteRentalInfoPayload = {
+      monthly_rental_income: body.data.monthly_rental_income,
+      annual_property_insurance: body.data.annual_property_insurance,
+      annual_property_taxes: body.data.annual_property_taxes,
+      monthly_hoa_fee: body.data.monthly_hoa_fee,
+      quote_id: quote.id,
     }
-
-    const matchResults = await matchQuoteToLenders(quoteId);
-    await saveMatchResults(quoteId, matchResults);
-
-    const qualifiedLenders = matchResults.filter(r => r.match_status === 'qualified');
-    const disqualifiedLenders = matchResults.filter(r => r.match_status === 'disqualified');
-
-    res.json({
-      quote_id: quoteId,
-      total_lenders: matchResults.length,
-      qualified_count: qualifiedLenders.length,
-      disqualified_count: disqualifiedLenders.length,
-      qualified_lenders: qualifiedLenders,
-      disqualified_lenders: disqualifiedLenders,
-    });
+    const respose = await Promise.all([
+      prisma.quote_Applicant_Info.create({
+        data: _quoteApplicantInfoPayload,
+      }),
+      prisma.quote_Loan_Details.create({
+        data: _quoteLoanDetailsPayload,
+      }),
+      prisma.quote_Rental_Info.create({
+        data: _quoteRentalInfoPayload,
+      }),
+    ]);
+    return res.status(201).json(respose);
   } catch (error) {
-    console.error('Error matching quote with lenders:', error);
-    res.status(500).json({ error: 'Failed to match quote with lenders' });
+    console.error("Error creating shortened quote:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
-};
+}
 
-export const getQuoteLenderMatches = async (req: Request, res: Response) => {
+
+export const getQuotesForAllEmployees = async (req: Request, res: Response) => {
   try {
-    const quoteId = parseInt(req.params.id);
+    const status = req.query.status as string;
+    const loan_type = req.query["loan-type"] as string;
 
-    if (isNaN(quoteId) || quoteId <= 0) {
-      return res.status(400).json({ error: 'Invalid quote ID' });
+    // Create where clause with filters
+    const where: any = { is_draft: false };
+    if (status) {
+      where.status = status;
+    }
+    if (loan_type) {
+      where.loan_type = loan_type;
     }
 
-    const matches = await getMatchesForQuote(quoteId);
-
-    const qualified = matches.filter(m => m.match_status === 'qualified');
-    const disqualified = matches.filter(m => m.match_status === 'disqualified');
-
-    res.json({
-      quote_id: quoteId,
-      total_matches: matches.length,
-      qualified_count: qualified.length,
-      disqualified_count: disqualified.length,
-      qualified_lenders: qualified,
-      disqualified_lenders: disqualified,
-    });
+    const result = await PaginationService.paginate(
+      prisma.quote,
+      req,
+      {
+        pagination: {
+          page: req.query.page as string,
+          limit: req.query.limit as string,
+        },
+        search: {
+          search: req.query.search as string,
+          searchFields: ['address']
+        },
+        where,
+        orderBy: { created_at: 'desc' },
+        include: {
+          quoteApplicantInfo: true,
+          quoteLoanDetails: true,
+          quoteRentalInfo: true,
+          quotePriorities: true,
+        }
+      }
+    );
+    return res.status(200).json(result);
   } catch (error) {
-    console.error('Error getting quote lender matches:', error);
-    res.status(500).json({ error: 'Failed to get lender matches' });
+    console.error("Error getting quotes for all employees:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
-};
+}

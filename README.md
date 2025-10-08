@@ -17,7 +17,7 @@ Then, navigate into the project directory:
 ```terminal
 cd express
 ```
-
+ 
 <details><summary><strong>Alternative:</strong> Clone the entire repo</summary>
 
 Clone this repository:

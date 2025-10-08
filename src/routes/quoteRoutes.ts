@@ -17,8 +17,9 @@ import {
   getQuoteRentalInfo,
   updateQuoteRentalInfo,
   getQuoteAsWhole,
-  matchQuoteWithLenders,
-  getQuoteLenderMatches,
+  createShortenedQuote,
+  getQuotesCountByStatus,
+  getQuotesForAllEmployees,
 } from "../controllers/quoteController";
 import { verifyJWT } from "../middleware/auth";
 
@@ -29,10 +30,13 @@ router.use(verifyJWT);
 
 // Quote routes
 router.post("/", createQuote);
+router.get("/count-by-status", getQuotesCountByStatus);
+router.get("/admin", getQuotesForAllEmployees);
 router.get("/", getAllQuotes); // Get all quotes for authenticated user
 router.get("/:id", getQuote);
 router.put("/:id", updateQuote);
 router.get("/:id/whole", getQuoteAsWhole);
+router.post("/shortened", createShortenedQuote);
 
 // Quote Applicant Info routes
 router.post("/applicant-info", createQuoteApplicantInfo);
@@ -53,9 +57,5 @@ router.put("/:id/priorities", updateQuotePriorities);
 router.post("/rental-info", createQuoteRentalInfo);
 router.get("/:id/rental-info", getQuoteRentalInfo);
 router.put("/:id/rental-info", updateQuoteRentalInfo);
-
-// Lender matching routes
-router.post("/:id/match-lenders", matchQuoteWithLenders);
-router.get("/:id/lender-matches", getQuoteLenderMatches);
 
 export default router;

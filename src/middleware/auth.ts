@@ -10,7 +10,6 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
   
   // Check JWT token from cookie
   const token = req.cookies.authToken
-  console.log("token", token)
   if (!token) {
     return res.status(401).json({ error: 'No authentication token found' })
   }
@@ -22,7 +21,8 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
     req.user = {
       id: decoded.id,
       email: decoded.email,
-      name: decoded.name
+      name: decoded.name,
+      ...(decoded.role && { role: decoded.role })
     }
     
     next()
@@ -46,9 +46,9 @@ export const verifyJWT = (req: Request, res: Response, next: NextFunction) => {
     req.user = {
       id: decoded.id,
       email: decoded.email,
-      name: decoded.name
+      name: decoded.name,
+      ...(decoded.role && { role: decoded.role })
     }
-    
     next()
   } catch (error) {
     return res.status(401).json({ error: 'Invalid authentication token' })

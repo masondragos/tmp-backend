@@ -8,31 +8,38 @@ datasource db {
 }
 
 model User {
-  id         Int      @id @default(autoincrement())
-  email      String   @unique
-  name       String?
-  password   String?
-  google_id  String?  @unique
-  avatar     String?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  quotes     Quote[]
+  id               Int               @id @default(autoincrement())
+  email            String            @unique
+  name             String?
+  password         String?
+  google_id        String?           @unique
+  avatar           String?
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+  quotes           Quote[]
+  loan_connections Loan_Connection[]
 }
 
 model Quote {
-  id                    Int                   @id @default(autoincrement())
-  created_at            DateTime              @default(now())
-  updated_at            DateTime              @updatedAt
-  user_id               Int
-  address               String?
-  loan_type             LoanType?
-  is_living_in_property Boolean
-  user                  User                  @relation(fields: [user_id], references: [id])
-  quoteApplicantInfo    Quote_Applicant_Info? @relation("QuoteToApplicantInfo")
-  quoteLoanDetails      Quote_Loan_Details?   @relation("QuoteToLoanDetails")
-  quotePriorities       Quote_Priorities?     @relation("QuoteToPriorities")
-  quoteRentalInfo       Quote_Rental_Info?    @relation("QuoteToRentalInfo")
-  lenderMatches         Quote_Lender_Match[]
+  id                       Int                   @id @default(autoincrement())
+  created_at               DateTime              @default(now())
+  updated_at               DateTime              @updatedAt
+  user_id                  Int
+  address                  String?
+  loan_type                LoanType?
+  property_type            String?
+  is_living_in_property    Boolean
+  status                   QuoteStatus?          @default(draft)
+  is_term_sheets_available Boolean?              @default(false)
+  user                     User                  @relation(fields: [user_id], references: [id])
+  quoteApplicantInfo       Quote_Applicant_Info? @relation("QuoteToApplicantInfo")
+  quoteLoanDetails         Quote_Loan_Details?   @relation("QuoteToLoanDetails")
+  quotePriorities          Quote_Priorities?     @relation("QuoteToPriorities")
+  quoteRentalInfo          Quote_Rental_Info?    @relation("QuoteToRentalInfo")
+  is_draft                 Boolean?              @default(true)
+  active_step              FormSteps?            @default(property_address)
+  loan_connections         Loan_Connection[]
+  universal_term_sheets    UniversalTermSheet[]
 }
 
 model Quote_Applicant_Info {
@@ -52,6 +59,7 @@ model Quote_Applicant_Info {
   phone_number           String?
   whats_most_important   String?
   company_state          String?
+  property_state         String?
   quote                  Quote    @relation("QuoteToApplicantInfo", fields: [quote_id], references: [id])
 }
 
@@ -83,8 +91,8 @@ model Quote_Loan_Details {
   how_much_are_they_paying        String?
   market_rent                     String?
   what_needs_to_be_done           String?
-  how_will_you_fund_this         String?
-  rehab_amount_requested         String?
+  how_will_you_fund_this          String?
+  rehab_amount_requested          String?
   quote                           Quote     @relation("QuoteToLoanDetails", fields: [quote_id], references: [id])
 }
 
@@ -109,7 +117,125 @@ model Quote_Priorities {
   speed_of_closing Boolean?
   low_fees         Boolean?
   high_leverage    Boolean?
+  comments         String?
   quote            Quote    @relation("QuoteToPriorities", fields: [quote_id], references: [id])
+}
+
+model Employee {
+  id               Int               @id @default(autoincrement())
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+  name             String
+  email            String            @unique
+  password         String?
+  role             Role
+  is_active        Boolean           @default(false)
+  invite_status    EmployeeStatus    @default(pending)
+  loan_connections Loan_Connection[]
+}
+
+model Lender {
+  id               Int               @id @default(autoincrement())
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+  name             String
+  email            String            @unique
+  password         String?
+  is_active        Boolean           @default(false)
+  invite_status    EmployeeStatus    @default(pending)
+  contact_email    String?
+  phone            String?
+  website          String?
+  status           LenderStatus      @default(inactive)
+  loan_connections Loan_Connection[]
+  loan_products    LoanProduct[]
+  universal_term_sheets UniversalTermSheet[]
+}
+
+model LoanProduct {
+  id              Int               @id @default(autoincrement())
+  created_at      DateTime          @default(now())
+  updated_at      DateTime          @updatedAt
+  lender_id       Int
+  name            String
+  description     String?
+  lender          Lender            @relation(fields: [lender_id], references: [id])
+  criteria        LoanCriteria?     @relation("LoanProductToCriteria")
+  loan_connections Loan_Connection[]
+  universal_term_sheets UniversalTermSheet[]
+}
+
+model LoanCriteria {
+  id                       Int           @id @default(autoincrement())
+  created_at               DateTime      @default(now())
+  updated_at               DateTime      @updatedAt
+  loan_product_id          Int           @unique
+  max_loan_amount          Decimal?
+  min_loan_amount          Decimal?
+  citizenship_requirement  CitizenshipRequirement?
+  seasoning_period_months  Int?
+  appraisal_required       Boolean?
+  appraisal_type           AppraisalType?
+  states_funded            Json?
+  loan_product             LoanProduct   @relation("LoanProductToCriteria", fields: [loan_product_id], references: [id])
+}
+
+model Loan_Connection {
+  id                Int              @id @default(autoincrement())
+  created_at        DateTime         @default(now())
+  updated_at        DateTime         @updatedAt
+  lender_id         Int
+  lender            Lender           @relation(fields: [lender_id], references: [id])
+  employee_id       Int
+  employee          Employee         @relation(fields: [employee_id], references: [id])
+  loan_product_id   Int?
+  loan_product      LoanProduct?     @relation(fields: [loan_product_id], references: [id])
+  user_id           Int
+  user              User             @relation(fields: [user_id], references: [id])
+  quote_id          Int
+  quote             Quote            @relation(fields: [quote_id], references: [id])
+  term_sheet_status TermSheetStatus? @default(awaiting)
+  universal_term_sheets UniversalTermSheet[]
+}
+
+model UniversalTermSheet {
+  id                   Int               @id @default(autoincrement())
+  quote_id             Int
+  lender_id            Int
+  loan_product_id      Int?
+  loan_connection_id   Int?
+
+  loan_amount          Decimal?
+  interest_rate        Float?
+  term_months          Int?
+  origination_fee      Decimal?
+  appraisal_fees       Decimal?
+  total_lender_fees    Decimal?
+  dscr                 Float?
+  arv_estimate         Decimal?
+  exit_strategy        String?
+  status               String?
+
+  quote                Quote            @relation(fields: [quote_id], references: [id])
+  lender               Lender           @relation(fields: [lender_id], references: [id])
+  loan_product         LoanProduct?     @relation(fields: [loan_product_id], references: [id])
+  loan_connection      Loan_Connection? @relation(fields: [loan_connection_id], references: [id])
+
+  created_at           DateTime         @default(now())
+  updated_at           DateTime         @updatedAt
+}
+
+
+enum Role {
+  admin
+  employee
+}
+
+enum EmployeeStatus {
+  pending
+  active
+  expired
+  cancelled
 }
 
 enum LoanType {
@@ -122,64 +248,51 @@ enum ExitPlan {
   sell
 }
 
-model Lender {
-  id            Int                    @id @default(autoincrement())
-  company_name  String
-  email         String                 @unique
-  password      String?
-  contact_name  String?
-  phone_number  String?
-  created_at    DateTime               @default(now())
-  updated_at    DateTime               @updatedAt
-  loan_products Lender_Loan_Product[]
-  quote_matches Quote_Lender_Match[]
-}
-
-model Lender_Loan_Product {
-  id                      Int      @id @default(autoincrement())
-  lender_id               Int
-  loan_type               LoanType
-  min_loan_amount         Decimal?
-  max_loan_amount         Decimal?
-  appraisal_required      Boolean  @default(true)
-  appraisal_requirements  String?
-  citizen_requirements    String[]
-  seasoning_period_months Int?
-  states_funded           String[]
-  min_credit_score        Int?
-  max_ltv_percentage      Decimal?
-  accepts_rehab_loans     Boolean  @default(false)
-  created_at              DateTime @default(now())
-  updated_at              DateTime @updatedAt
-  lender                  Lender   @relation(fields: [lender_id], references: [id])
-
-  @@index([lender_id])
-  @@index([loan_type])
-}
-
-model Quote_Lender_Match {
-  id                      Int         @id @default(autoincrement())
-  quote_id                Int
-  lender_id               Int
-  match_status            MatchStatus @default(pending)
-  disqualification_reason String?
-  term_sheet_requested    Boolean     @default(false)
-  term_sheet_received     Boolean     @default(false)
-  created_at              DateTime    @default(now())
-  updated_at              DateTime    @updatedAt
-  quote                   Quote       @relation(fields: [quote_id], references: [id])
-  lender                  Lender      @relation(fields: [lender_id], references: [id])
-
-  @@unique([quote_id, lender_id])
-  @@index([quote_id])
-  @@index([lender_id])
-}
-
-enum MatchStatus {
-  pending
-  qualified
+enum FormSteps {
+  property_address
+  occupancy
   disqualified
-  term_sheet_requested
-  term_sheet_received
-  declined
+  sign_in
+  loan_type
+  applicant_info
+  loan_details
+  priorities
+  rental_info
+}
+
+enum QuoteStatus {
+  draft
+  awaiting
+  signed
+  closed
+  available
+}
+
+enum TermSheetStatus {
+  awaiting
+  pending
+  signed
+  closed
+  available
+}
+
+enum LenderStatus {
+  active
+  inactive
+}
+
+enum CitizenshipRequirement {
+  US_CITIZEN
+  PERMANENT_RESIDENT
+  LEGAL_RESIDENT
+  FOREIGN_NATIONAL
+  ANY
+}
+enum AppraisalType {
+  FULL                // Full interior + exterior appraisal
+  DRIVE_BY            // Exterior-only "drive-by" appraisal
+  DESKTOP             // Desktop appraisal (remote, online data only)
+  BPO                 // Broker Price Opinion
+  AVM                 // Automated Valuation Model
+  NONE                // No appraisal required
 }

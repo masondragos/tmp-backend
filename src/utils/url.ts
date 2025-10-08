@@ -1,31 +1,56 @@
+const stage = process.env.STAGE;
 export const getUrls = () => {
-  const stage = process.env.STAGE || "dev";
-  const replitDomain = process.env.REPLIT_DEV_DOMAIN;
+  
 
-  // If running on Replit, use Replit domain
-  const baseURL = replitDomain 
-    ? `https://${replitDomain}`
-    : stage === "production"
-    ? "https://api.themortgageplatform.com"
-    : "http://localhost:4000";
+  if (!stage) {
+    throw new Error("STAGE is not set");
+  }
 
   const callbackURL =
-    stage === "dev" && !replitDomain
+    stage === "dev"
       ? "http://localhost:4000/api/v1/auth/google/callback"
       : stage === "production"
       ? "https://api.themortgageplatform.com/api/v1/auth/google/callback"
-      : replitDomain
-      ? `https://${replitDomain}/api/v1/auth/google/callback`
       : "https://mortgage-broker-apis-eta.vercel.app/api/v1/auth/google/callback";
 
   const frontendURL =
-    stage === "dev" && !replitDomain
+    stage === "dev"
       ? "http://localhost:3000"
       : stage === "production"
       ? "https://themortgageplatform.com"
-      : replitDomain
-      ? `https://${replitDomain}`
       : "https://mortgage-broker-app.vercel.app/";
 
   return { callbackURL, frontendURL };
 };
+export const getAdminURL = () => {
+
+  if (!stage) {
+    throw new Error("STAGE is not set");
+  }
+
+  const frontendURL =
+    stage === "dev"
+      ? "http://localhost:3000"
+      : stage === "production"
+      ? "https://admin.themortgageplatform.com"
+      : "https://admin.themortgageplatform.com/";
+
+  return frontendURL;
+};
+export const getLenderURL = () => {
+  const stage = process.env.STAGE;
+
+  if (!stage) {
+    throw new Error("STAGE is not set");
+  }
+
+  const frontendURL =
+    stage === "dev"
+      ? "http://localhost:3000"
+      : stage === "production"
+      ? "https://lender.themortgageplatform.com"
+      : "https://lender.themortgageplatform.com/";
+
+  return frontendURL;
+};
+

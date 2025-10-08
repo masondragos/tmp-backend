@@ -1,0 +1,331 @@
+{
+	"info": {
+		"_postman_id": "employee-mgmt-api",
+		"name": "Employee Management API",
+		"description": "Complete collection for Employee Management API endpoints including authentication, CRUD operations, and invitation system",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Employee Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/employee/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"employee",
+								"login"
+							]
+						},
+						"description": "Login for existing employees"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current Employee (Me)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/v1/employee/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"employee",
+								"me"
+							]
+						},
+						"description": "Get current authenticated employee details"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication related endpoints"
+		},
+		{
+			"name": "Employee Invitation",
+			"item": [
+				{
+					"name": "Invite Employee",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"newemployee@example.com\",\n  \"name\": \"John Doe\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/employee/invite",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"employee",
+								"invite"
+							]
+						},
+						"description": "Send invitation email to new employee"
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Invitation",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/v1/employee/verify-invitation?token={{invitationToken}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"employee",
+								"verify-invitation"
+							],
+							"query": [
+								{
+									"key": "token",
+									"value": "{{invitationToken}}",
+									"description": "JWT invitation token"
+								}
+							]
+						},
+						"description": "Verify invitation token and get employee details"
+					},
+					"response": []
+				},
+				{
+					"name": "Register Employee",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"{{invitationToken}}\",\n  \"password\": \"newpassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/employee/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"employee",
+								"register"
+							]
+						},
+						"description": "Complete employee registration with password"
+					},
+					"response": []
+				},
+				{
+					"name": "Make Admin",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/v1/employee/make-admin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"employee",
+								"make-admin"
+							]
+						},
+						"description": "Make employee with ID 1 an admin (development endpoint)"
+					},
+					"response": []
+				}
+			],
+			"description": "Employee invitation and registration flow"
+		},
+		{
+			"name": "Employee Management (Admin Only)",
+			"item": [
+				{
+					"name": "Get All Employees",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/v1/employee?page=1&limit=10&search={{searchTerm}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"employee"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number for pagination"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Number of items per page"
+								},
+								{
+									"key": "search",
+									"value": "{{searchTerm}}",
+									"description": "Search term for name or email"
+								}
+							]
+						},
+						"description": "Get paginated list of all employees with search functionality"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Employee by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/v1/employee/{{employeeId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"employee",
+								"{{employeeId}}"
+							]
+						},
+						"description": "Get specific employee details by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Disable Employee",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/v1/employee/{{employeeId}}/disable",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"employee",
+								"{{employeeId}}",
+								"disable"
+							]
+						},
+						"description": "Soft delete - disable an employee (cannot disable admin)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Employee",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/v1/employee/{{employeeId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"employee",
+								"{{employeeId}}"
+							]
+						},
+						"description": "Hard delete - permanently remove an employee (cannot delete admin)"
+					},
+					"response": []
+				}
+			],
+			"description": "Admin-only employee management operations"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:4000/api",
+			"type": "string"
+		}
+	]
+}
