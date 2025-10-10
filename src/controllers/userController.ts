@@ -68,7 +68,7 @@ export const createUser = async (req: Request, res: Response) => {
       email: result.email,
       name: result.name || '',
       avatar: result.avatar
-    })
+    },'user_auth_token','user_info');
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = result
@@ -134,7 +134,7 @@ export const loginUser = async (req: Request, res: Response) => {
       email: user.email,
       name: user.name || '',
       avatar: user.avatar
-    })
+    },'user_auth_token','user_info');
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user

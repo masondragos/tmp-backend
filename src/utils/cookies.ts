@@ -32,9 +32,10 @@ const defaultCookieOptions: CookieOptions = {
 export const setAuthTokenCookie = (
   res: Response,
   token: string,
+  cookieName: string = 'authToken',
   maxAge: number = 7 * 24 * 60 * 60 * 1000 // 7 days default
 ): void => {
-  res.cookie('authToken', token, {
+  res.cookie(cookieName, token, {
     ...defaultCookieOptions,
     maxAge,
   })
@@ -46,9 +47,10 @@ export const setAuthTokenCookie = (
 export const setUserInfoCookie = (
   res: Response,
   userInfo: UserInfo,
+  cookieName: string = 'userInfo',
   maxAge: number = 7 * 24 * 60 * 60 * 1000 // 7 days default
 ): void => {
-  res.cookie('userInfo', JSON.stringify(userInfo), {
+  res.cookie(cookieName, JSON.stringify(userInfo), {
     ...defaultCookieOptions,
     maxAge,
   })
@@ -61,20 +63,26 @@ export const setAuthCookies = (
   res: Response,
   token: string,
   userInfo: UserInfo,
-  maxAge: number = 7 * 24 * 60 * 60 * 1000 // 7 days default
+  authTokenName: string = 'authToken',
+  userInfoName: string = 'userInfo',
+  maxAge: number = 7 * 24 * 60 * 60 * 1000, // 7 days default
 ): void => {
-  setAuthTokenCookie(res, token, maxAge)
-  setUserInfoCookie(res, userInfo, maxAge)
+  setAuthTokenCookie(res, token, authTokenName, maxAge)
+  setUserInfoCookie(res, userInfo, userInfoName, maxAge)
 }
 
 /**
  * Clears authentication cookies
  */
-export const clearAuthCookies = (res: Response): void => {
-  res.clearCookie('authToken', {
+export const clearAuthCookies = (
+  res: Response,
+  authTokenName: string = 'authToken',
+  userInfoName: string = 'userInfo'
+): void => {
+  res.clearCookie(authTokenName, {
     ...defaultCookieOptions,
   })
-  res.clearCookie('userInfo', {
+  res.clearCookie(userInfoName, {
     ...defaultCookieOptions,
   })
 }

@@ -31,6 +31,8 @@ export const initializeGoogleStrategy = () => {
         clientID: process.env.GOOGLE_AUTH_CLIENT_ID,
         clientSecret: process.env.GOOGLE_AUTH_CLIENT_SECRET,
         callbackURL: callbackURL,
+        userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
+        proxy: true,
       },
       async (accessToken, refreshToken, profile, done) => {
         try {

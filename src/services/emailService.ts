@@ -13,6 +13,7 @@ interface EmailTemplate {
   text: string;
   html: string;
 }
+const STAGE = process.env.STATE
 
 class EmailService {
   private transporter: nodemailer.Transporter;

@@ -410,7 +410,7 @@ export const login = async (request: Request, res: Response) => {
       email: user.email,
       name: user.name || "",
       avatar: null,
-    });
+    },'employee_auth_token','employee_info');
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
