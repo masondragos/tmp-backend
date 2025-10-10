@@ -40,6 +40,7 @@ export const createLoanProduct = async (req: Request, res: Response) => {
       appraisal_required,
       appraisal_type,
       states_funded,
+      active,
       ...productData 
     } = body.data;
 
@@ -51,6 +52,7 @@ export const createLoanProduct = async (req: Request, res: Response) => {
           lender_id,
           name,
           description,
+          active,
         },
       });
 
@@ -225,6 +227,7 @@ export const updateLoanProduct = async (req: Request, res: Response) => {
       appraisal_required,
       appraisal_type,
       states_funded,
+      active,
       ...productData 
     } = body.data;
 
@@ -236,6 +239,7 @@ export const updateLoanProduct = async (req: Request, res: Response) => {
         data: {
           name,
           description,
+          active,
         },
       });
 

@@ -13,6 +13,7 @@ const createLoanProductSchema = z.object({
     appraisal_required: z.boolean(),
     appraisal_type: z.enum(Object.values(AppraisalType) as [AppraisalType, ...AppraisalType[]]),
     states_funded: z.array(z.string()),
+    active: z.boolean(),
   });
 const createLoanProductSchemaWithUpraisalOptional = z.object({
     name: z.string().min(1, "Product name is required"),
@@ -25,6 +26,7 @@ const createLoanProductSchemaWithUpraisalOptional = z.object({
     appraisal_required: z.boolean(),
     appraisal_type: z.enum(Object.values(AppraisalType) as [AppraisalType, ...AppraisalType[]]).optional(),
     states_funded: z.array(z.string()),
+    active: z.boolean(),
   });
 
 export const getCreateUpdateLoanProductSchema = (appraisal_required: boolean)=>{

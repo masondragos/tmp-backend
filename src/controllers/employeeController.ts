@@ -433,8 +433,9 @@ export const getMe = async (req: Request, res: Response) => {
     });
     if (!employee) {
       res.status(404).json({ message: "Employee not found" });
+    }else{
+      res.status(200).json(employee);
     }
-    res.status(200).json(employee);
   } catch (error) {
     console.error("Error during login:", error);
     res.status(500).json({ error: "Internal server error" });

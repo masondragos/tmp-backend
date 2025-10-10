@@ -163,6 +163,7 @@ model LoanProduct {
   criteria        LoanCriteria?     @relation("LoanProductToCriteria")
   loan_connections Loan_Connection[]
   universal_term_sheets UniversalTermSheet[]
+  active            Boolean           @default(true)
 }
 
 model LoanCriteria {
