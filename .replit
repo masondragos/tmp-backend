@@ -24,7 +24,7 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm run dev"
-waitForPort = 4000
+waitForPort = 3000
 
 [workflows.workflow.metadata]
 outputType = "console"
@@ -36,6 +36,10 @@ externalPort = 3000
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"
