@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
 import OpenAI from "openai";
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.api_key,
-});
+// Helper function to get OpenAI client
+const getOpenAIClient = () => {
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+};
 
 /**
  * Test endpoint to verify OpenAI API key is valid
@@ -23,6 +25,7 @@ export const testApiKey = async (req: Request, res: Response) => {
 
     // Make a simple API call to test the key
     // Using the models list endpoint as it's lightweight and fast
+    const openai = getOpenAIClient();
     const models = await openai.models.list();
     
     // If we get here, the API key is valid
@@ -79,6 +82,7 @@ export const testChatCompletion = async (req: Request, res: Response) => {
     }
 
     // Make a simple chat completion request
+    const openai = getOpenAIClient();
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [

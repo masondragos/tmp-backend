@@ -4,7 +4,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "nodemon -r dotenv/config src/index.ts",
-    "start": "ts-node -r dotenv/config src/index.ts",
+    "start": "ts-node src/index.ts",
     "postinstall": "pnpm prisma generate"
   },
   "dependencies": {

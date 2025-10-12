@@ -1,7 +1,9 @@
 import dotenv from "dotenv";
 
-// Load environment variables
-dotenv.config();
+// Load environment variables (only load .env in development, not in Replit deployments)
+if (!process.env.REPLIT_DEPLOYMENT) {
+  dotenv.config();
+}
 import express from "express";
 import session from "express-session";
 import cookieParser from "cookie-parser";
