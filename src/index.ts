@@ -75,9 +75,10 @@ app.get("/ping", (req, res) => {
   res.status(200).json({ message: "pong" });
 });
 
-const server = app.listen(4000, () =>
+const PORT = process.env.PORT || 3000;
+const server = app.listen(PORT, () =>
   console.log(`
-🚀 Server ready at: http://localhost:4000
+🚀 Server ready at: http://localhost:${PORT}
 🔐 Google OAuth enabled
 🌐 CORS enabled for localhost:3000
 ⭐️ Auth endpoints: /api/v1/auth/google, /api/v1/auth/google/callback, /api/v1/auth/logout, /api/v1/auth/me`)
