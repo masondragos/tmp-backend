@@ -39,7 +39,7 @@ app.use(
     credentials: true, // Allow cookies to be sent
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
-  })
+  }),
 );
 
 // Middleware
@@ -51,7 +51,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: getCookieOptions(),
-  })
+  }),
 );
 
 // Initialize Google OAuth Strategy
@@ -72,16 +72,17 @@ app.use("/api/v1/loan-products", loanProductRoutes);
 app.use("/api/v1/universal-term-sheets", universalTermSheetRoutes);
 app.use("/api/v1/openai-test", openaiTestRoutes);
 
-
 app.get("/ping", (req, res) => {
   res.status(200).json({ message: "pong" });
 });
 
-const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () =>
+const PORT = parseInt(process.env.PORT || '5000', 10);
+const HOST = '0.0.0.0'; // Bind to all interfaces for Replit deployments
+
+const server = app.listen(PORT, HOST, () =>
   console.log(`
-🚀 Server ready at: http://localhost:${PORT}
+🚀 Server ready at: http://${HOST}:${PORT}
 🔐 Google OAuth enabled
 🌐 CORS enabled for localhost:3000
-⭐️ Auth endpoints: /api/v1/auth/google, /api/v1/auth/google/callback, /api/v1/auth/logout, /api/v1/auth/me`)
+⭐️ Auth endpoints: /api/v1/auth/google, /api/v1/auth/google/callback, /api/v1/auth/logout, /api/v1/auth/me`),
 );
