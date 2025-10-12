@@ -403,6 +403,7 @@ export const getBestLoanProducts = async (req: Request, res: Response) => {
       // Get all active loan products with their criteria
       const loanProducts = await prisma.loanProduct.findMany({
         where: {
+          active: true,
           lender: {
             is_active: true,
           }
@@ -424,28 +425,35 @@ export const getBestLoanProducts = async (req: Request, res: Response) => {
         orderBy: { created_at: 'desc' },
       });
   
-      // TODO: Recommendation engine - filter loan products based on criteria
-      // const matchingProducts = loanProducts.filter(product => {
-      //   const criteria = product.criteria;
-      //   
-      //   if (!criteria || !quote.quoteLoanDetails?.requested_loan_amount) {
-      //     return false;
-      //   }
-      // 
-      //   const requestedAmount = parseFloat(quote.quoteLoanDetails.requested_loan_amount);
-      //   
-      //   // Check if loan amount fits within criteria
-      //   const meetsMinAmount = !criteria.min_loan_amount || requestedAmount >= parseFloat(criteria.min_loan_amount.toString());
-      //   const meetsMaxAmount = !criteria.max_loan_amount || requestedAmount <= parseFloat(criteria.max_loan_amount.toString());
-      //   
-      //   return meetsMinAmount && meetsMaxAmount;
-      // });
+      // Get existing loan connections to exclude already connected products
       const loan_connections = await prisma.loan_Connection.findMany({
         where: { quote_id: parseInt(quoteId) },
         select: { lender_id: true, loan_product_id: true },
       });
       const loan_product_ids = loan_connections.map(connection => connection.loan_product_id);
-      const filteredLoanProducts = loanProducts.filter(product => !loan_product_ids.includes(product.id));
+      
+      // Filter by loan type - product name should match the quote's loan type
+      const filteredLoanProducts = loanProducts.filter(product => {
+        // Exclude already connected products
+        if (loan_product_ids.includes(product.id)) {
+          return false;
+        }
+
+        // Filter by loan type
+        if (quote.loan_type && product.name) {
+          const productNameLower = product.name.toLowerCase().replace(/[_\s-]/g, "");
+          const loanTypeLower = quote.loan_type.toLowerCase().replace(/[_\s-]/g, "");
+          
+          // Check if product name matches loan type
+          if (loanTypeLower.includes("dscr")) {
+            return productNameLower.includes("dscr");
+          } else if (loanTypeLower.includes("bridge") || loanTypeLower.includes("flip")) {
+            return productNameLower.includes("bridge") || productNameLower.includes("flip");
+          }
+        }
+        
+        return true; // Include if no loan type specified
+      });
 
       res.status(200).json({
         quote: {
@@ -461,4 +469,4 @@ export const getBestLoanProducts = async (req: Request, res: Response) => {
       console.error("Error getting Best Loan Products:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+}

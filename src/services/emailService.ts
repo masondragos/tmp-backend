@@ -392,6 +392,155 @@ class EmailService {
   }
 
   /**
+   * Send term sheet request notification to lender
+   */
+  async sendTermSheetRequestEmail(
+    lenderEmail: string,
+    lenderName: string,
+    loanProductName: string,
+    loanType: string,
+    propertyAddress: string,
+    requestedAmount: string,
+    dashboardLink: string
+  ): Promise<boolean> {
+    const template: EmailTemplate = {
+      subject: "New Term Sheet Request - {{loanProductName}}",
+      text: `Hello {{lenderName}},\n\nYou have received a new term sheet request for your loan product "{{loanProductName}}".\n\nLoan Type: {{loanType}}\nProperty: {{propertyAddress}}\nRequested Amount: {{requestedAmount}}\n\nPlease log in to your dashboard to review the complete details and provide a term sheet.\n\nDashboard: {{dashboardLink}}\n\nBest regards,\nThe Mortgage Broker Team`,
+      html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <!-- Main Container -->
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
+          
+          <!-- Header with Gradient -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #F68921 0%, #ff9d42 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">
+                🎉 New Term Sheet Request
+              </h1>
+              <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 16px; opacity: 0.95;">
+                A borrower is interested in your loan product
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Content -->
+          <tr>
+            <td style="padding: 50px 40px;">
+              <p style="margin: 0 0 20px 0; color: #1E2939; font-size: 18px; line-height: 1.6;">
+                Hello <strong>{{lenderName}}</strong>,
+              </p>
+              
+              <p style="margin: 0 0 25px 0; color: #4a5568; font-size: 16px; line-height: 1.7;">
+                Great news! You have received a new term sheet request for your loan product <strong style="color: #F68921;">"{{loanProductName}}"</strong>.
+              </p>
+              
+              <!-- Loan Details Box -->
+              <div style="background-color: #f8f9fa; border-radius: 8px; padding: 25px; margin-bottom: 30px; border: 1px solid #e2e8f0;">
+                <h3 style="margin: 0 0 20px 0; color: #1E2939; font-size: 18px; font-weight: 600; border-bottom: 2px solid #F68921; padding-bottom: 10px;">
+                  📋 Request Details
+                </h3>
+                
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="padding: 8px 0;">
+                      <span style="color: #718096; font-size: 14px; font-weight: 500;">Loan Type:</span>
+                    </td>
+                    <td style="padding: 8px 0; text-align: right;">
+                      <span style="color: #1E2939; font-size: 14px; font-weight: 600;">{{loanType}}</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0;">
+                      <span style="color: #718096; font-size: 14px; font-weight: 500;">Property Address:</span>
+                    </td>
+                    <td style="padding: 8px 0; text-align: right;">
+                      <span style="color: #1E2939; font-size: 14px; font-weight: 600;">{{propertyAddress}}</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; border-top: 1px solid #e2e8f0;">
+                      <span style="color: #718096; font-size: 14px; font-weight: 500;">Requested Amount:</span>
+                    </td>
+                    <td style="padding: 8px 0; text-align: right; border-top: 1px solid #e2e8f0;">
+                      <span style="color: #F68921; font-size: 16px; font-weight: 700;">${{requestedAmount}}</span>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+              
+              <p style="margin: 0 0 30px 0; color: #4a5568; font-size: 16px; line-height: 1.7;">
+                Please log in to your lender dashboard to review the complete application details and provide your term sheet.
+              </p>
+              
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding: 10px 0 35px 0;">
+                    <a href="{{dashboardLink}}" style="display: inline-block; background-color: #F68921; color: #ffffff; text-decoration: none; padding: 16px 48px; border-radius: 8px; font-size: 16px; font-weight: 600; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(246, 137, 33, 0.3); transition: all 0.3s ease;">
+                      View Request & Respond
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- Info Box -->
+              <div style="background-color: #fff5ec; border-left: 4px solid #F68921; padding: 20px; border-radius: 6px; margin-bottom: 25px;">
+                <p style="margin: 0; color: #1E2939; font-size: 14px; line-height: 1.6;">
+                  <strong style="color: #F68921;">⏱️ Time-Sensitive:</strong> Responding quickly increases your chances of closing this deal. Borrowers typically review term sheets within 48 hours.
+                </p>
+              </div>
+              
+              <p style="margin: 0 0 10px 0; color: #718096; font-size: 14px; line-height: 1.6;">
+                If you have any questions or need assistance, our team is here to help.
+              </p>
+              
+              <p style="margin: 0; color: #4a5568; font-size: 16px; line-height: 1.7;">
+                Best of luck with this opportunity!
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #1E2939; padding: 30px 40px; text-align: center;">
+              <p style="margin: 0 0 10px 0; color: #ffffff; font-size: 16px; font-weight: 600;">
+                The Mortgage Broker Team
+              </p>
+              <p style="margin: 0; color: #a0aec0; font-size: 13px; line-height: 1.6;">
+                © 2025 The Mortgage Broker. All rights reserved.
+              </p>
+            </td>
+          </tr>
+          
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+      `,
+    };
+
+    return await this.sendTemplateEmail(lenderEmail, template, {
+      lenderName,
+      loanProductName,
+      loanType,
+      propertyAddress,
+      requestedAmount,
+      dashboardLink,
+    });
+  }
+
+  /**
    * Test email configuration
    */
   async testConnection(): Promise<boolean> {

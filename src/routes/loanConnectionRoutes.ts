@@ -10,6 +10,7 @@ import {
   getLoanConnectionsByUser,
   getLoanConnectionsByEmployee,
   getLoanConnectionsForEmployee,
+  rejectLoanConnection,
 } from '../controllers/loanConnectionController';
 import { verifyJWT } from '../middleware/auth';
 import { requireEmployee } from '../middleware/adminAuth';
@@ -25,6 +26,7 @@ router.use(verifyJWT);
 // Get a specific loan connection by ID
 
 // Update a loan connection
+router.put('/reject/:id', rejectLoanConnection);
 router.put('/:id', updateLoanConnection);
 
 // Delete a loan connection

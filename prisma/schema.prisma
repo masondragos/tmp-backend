@@ -28,7 +28,7 @@ model Quote {
   address                  String?
   loan_type                LoanType?
   property_type            String?
-  is_living_in_property    Boolean
+  is_living_in_property    Boolean               @default(true)
   status                   QuoteStatus?          @default(draft)
   is_term_sheets_available Boolean?              @default(false)
   user                     User                  @relation(fields: [user_id], references: [id])
@@ -135,97 +135,107 @@ model Employee {
 }
 
 model Lender {
-  id               Int               @id @default(autoincrement())
-  created_at       DateTime          @default(now())
-  updated_at       DateTime          @updatedAt
-  name             String
-  email            String            @unique
-  password         String?
-  is_active        Boolean           @default(false)
-  invite_status    EmployeeStatus    @default(pending)
-  contact_email    String?
-  phone            String?
-  website          String?
-  status           LenderStatus      @default(inactive)
-  loan_connections Loan_Connection[]
-  loan_products    LoanProduct[]
+  id                    Int                  @id @default(autoincrement())
+  created_at            DateTime             @default(now())
+  updated_at            DateTime             @updatedAt
+  name                  String
+  email                 String               @unique
+  password              String?
+  is_active             Boolean              @default(false)
+  invite_status         EmployeeStatus       @default(pending)
+  contact_email         String?
+  phone                 String?
+  website               String?
+  status                LenderStatus         @default(inactive)
+  loan_connections      Loan_Connection[]
+  loan_products         LoanProduct[]
   universal_term_sheets UniversalTermSheet[]
 }
 
 model LoanProduct {
-  id              Int               @id @default(autoincrement())
-  created_at      DateTime          @default(now())
-  updated_at      DateTime          @updatedAt
-  lender_id       Int
-  name            String
-  description     String?
-  lender          Lender            @relation(fields: [lender_id], references: [id])
-  criteria        LoanCriteria?     @relation("LoanProductToCriteria")
-  loan_connections Loan_Connection[]
+  id                    Int                  @id @default(autoincrement())
+  created_at            DateTime             @default(now())
+  updated_at            DateTime             @updatedAt
+  lender_id             Int
+  name                  String
+  description           String?
+  lender                Lender               @relation(fields: [lender_id], references: [id])
+  criteria              LoanCriteria?        @relation("LoanProductToCriteria")
+  loan_connections      Loan_Connection[]
   universal_term_sheets UniversalTermSheet[]
-  active            Boolean           @default(true)
+  active                Boolean              @default(true)
 }
 
 model LoanCriteria {
-  id                       Int           @id @default(autoincrement())
-  created_at               DateTime      @default(now())
-  updated_at               DateTime      @updatedAt
-  loan_product_id          Int           @unique
-  max_loan_amount          Decimal?
-  min_loan_amount          Decimal?
-  citizenship_requirement  CitizenshipRequirement?
-  seasoning_period_months  Int?
-  appraisal_required       Boolean?
-  appraisal_type           AppraisalType?
-  states_funded            Json?
-  loan_product             LoanProduct   @relation("LoanProductToCriteria", fields: [loan_product_id], references: [id])
+  id                      Int                     @id @default(autoincrement())
+  created_at              DateTime                @default(now())
+  updated_at              DateTime                @updatedAt
+  loan_product_id         Int                     @unique
+  max_loan_amount         Decimal?
+  min_loan_amount         Decimal?
+  citizenship_requirement CitizenshipRequirement?
+  seasoning_period_months Int?
+  appraisal_required      Boolean?
+  appraisal_type          AppraisalType?
+  states_funded           Json?
+  loan_product            LoanProduct             @relation("LoanProductToCriteria", fields: [loan_product_id], references: [id])
 }
 
 model Loan_Connection {
-  id                Int              @id @default(autoincrement())
-  created_at        DateTime         @default(now())
-  updated_at        DateTime         @updatedAt
-  lender_id         Int
-  lender            Lender           @relation(fields: [lender_id], references: [id])
-  employee_id       Int
-  employee          Employee         @relation(fields: [employee_id], references: [id])
-  loan_product_id   Int?
-  loan_product      LoanProduct?     @relation(fields: [loan_product_id], references: [id])
-  user_id           Int
-  user              User             @relation(fields: [user_id], references: [id])
-  quote_id          Int
-  quote             Quote            @relation(fields: [quote_id], references: [id])
-  term_sheet_status TermSheetStatus? @default(awaiting)
+  id                    Int                       @id @default(autoincrement())
+  created_at            DateTime                  @default(now())
+  updated_at            DateTime                  @updatedAt
+  lender_id             Int
+  lender                Lender                    @relation(fields: [lender_id], references: [id])
+  employee_id           Int
+  employee              Employee                  @relation(fields: [employee_id], references: [id])
+  loan_product_id       Int?
+  loan_product          LoanProduct?              @relation(fields: [loan_product_id], references: [id])
+  user_id               Int
+  user                  User                      @relation(fields: [user_id], references: [id])
+  quote_id              Int
+  quote                 Quote                     @relation(fields: [quote_id], references: [id])
+  term_sheet_status     TermSheetStatus?          @default(awaiting)
   universal_term_sheets UniversalTermSheet[]
+  closedLog             LoanConnectionClosedLog?  @relation("LoanConnectionToClosedLog")
+}
+
+model LoanConnectionClosedLog {
+  id                 Int             @id @default(autoincrement())
+  created_at         DateTime        @default(now())
+  updated_at         DateTime        @updatedAt
+  loan_connection_id Int             @unique
+  loan_connection    Loan_Connection @relation("LoanConnectionToClosedLog", fields: [loan_connection_id], references: [id])
+  closed_by          String?
+  closed_reason      String?
 }
 
 model UniversalTermSheet {
-  id                   Int               @id @default(autoincrement())
-  quote_id             Int
-  lender_id            Int
-  loan_product_id      Int?
-  loan_connection_id   Int?
+  id                 Int  @id @default(autoincrement())
+  quote_id           Int
+  lender_id          Int
+  loan_product_id    Int?
+  loan_connection_id Int?
 
-  loan_amount          Decimal?
-  interest_rate        Float?
-  term_months          Int?
-  origination_fee      Decimal?
-  appraisal_fees       Decimal?
-  total_lender_fees    Decimal?
-  dscr                 Float?
-  arv_estimate         Decimal?
-  exit_strategy        String?
-  status               String?
+  loan_amount       Decimal?
+  interest_rate     Float?
+  term_months       Int?
+  origination_fee   Decimal?
+  appraisal_fees    Decimal?
+  total_lender_fees Decimal?
+  dscr              Float?
+  arv_estimate      Decimal?
+  exit_strategy     String?
+  status            String?
 
-  quote                Quote            @relation(fields: [quote_id], references: [id])
-  lender               Lender           @relation(fields: [lender_id], references: [id])
-  loan_product         LoanProduct?     @relation(fields: [loan_product_id], references: [id])
-  loan_connection      Loan_Connection? @relation(fields: [loan_connection_id], references: [id])
+  quote           Quote            @relation(fields: [quote_id], references: [id])
+  lender          Lender           @relation(fields: [lender_id], references: [id])
+  loan_product    LoanProduct?     @relation(fields: [loan_product_id], references: [id])
+  loan_connection Loan_Connection? @relation(fields: [loan_connection_id], references: [id])
 
-  created_at           DateTime         @default(now())
-  updated_at           DateTime         @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
-
 
 enum Role {
   admin
@@ -289,11 +299,12 @@ enum CitizenshipRequirement {
   FOREIGN_NATIONAL
   ANY
 }
+
 enum AppraisalType {
-  FULL                // Full interior + exterior appraisal
-  DRIVE_BY            // Exterior-only "drive-by" appraisal
-  DESKTOP             // Desktop appraisal (remote, online data only)
-  BPO                 // Broker Price Opinion
-  AVM                 // Automated Valuation Model
-  NONE                // No appraisal required
+  FULL // Full interior + exterior appraisal
+  DRIVE_BY // Exterior-only "drive-by" appraisal
+  DESKTOP // Desktop appraisal (remote, online data only)
+  BPO // Broker Price Opinion
+  AVM // Automated Valuation Model
+  NONE // No appraisal required
 }

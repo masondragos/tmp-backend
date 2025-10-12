@@ -19,6 +19,7 @@ import lenderRoutes from "./routes/lenderRoutes";
 import loanConnectionRoutes from "./routes/loanConnectionRoutes";
 import loanProductRoutes from "./routes/loanProductRoutes";
 import universalTermSheetRoutes from "./routes/universalTermSheetRoutes";
+import openaiTestRoutes from "./routes/openaiTestRoutes";
 
 const app = express();
 
@@ -67,6 +68,9 @@ app.use("/api/v1/lender", lenderRoutes);
 app.use("/api/v1/loan-connections", loanConnectionRoutes);
 app.use("/api/v1/loan-products", loanProductRoutes);
 app.use("/api/v1/universal-term-sheets", universalTermSheetRoutes);
+app.use("/api/v1/openai-test", openaiTestRoutes);
+
+
 app.get("/ping", (req, res) => {
   res.status(200).json({ message: "pong" });
 });

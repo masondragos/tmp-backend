@@ -1,7 +1,7 @@
 import z from "zod";
 
 export const rentalInfoSchema = z.object({
-    loan_amount: z.string().min(1, "Loan amount is required"),
+    loan_amount: z.string().min(1, "Loan amount is required").optional(),
     monthly_rental_income: z.string().min(1, "Monthly rental income is required"),
     annual_property_insurance: z.string().optional(),
     annual_property_taxes: z.string().optional(),

@@ -3,6 +3,8 @@ import { PrismaClient, TermSheetStatus } from "@prisma/client";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { PaginationService } from "../utils/pagination";
 import { z } from "zod";
+import { emailService } from "../services/emailService";
+import { getLenderURL } from "../utils/url";
 
 const prisma = new PrismaClient().$extends(withAccelerate());
 
@@ -118,8 +120,60 @@ export const createLoanConnection = async (req: Request, res: Response) => {
             },
           },
         },
+        loan_product: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
       },
     });
+
+    // Send email notification to lender
+    try {
+      // Format loan type for display
+      const loanTypeDisplay = loanConnection.quote.loan_type
+        ? loanConnection.quote.loan_type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+        : "Not specified";
+
+      // Get requested loan amount
+      const requestedAmount =
+        loanConnection.quote.quoteLoanDetails?.requested_loan_amount ||
+        loanConnection.quote.quoteRentalInfo?.loan_amount ||
+        "Not specified";
+
+      // Format requested amount for display (remove currency symbols and add commas)
+      const formattedAmount = requestedAmount !== "Not specified"
+        ? parseFloat(requestedAmount.replace(/[^0-9.-]+/g, "")).toLocaleString("en-US")
+        : requestedAmount;
+
+      // Get property address
+      const propertyAddress = loanConnection.quote.address || "Not provided";
+
+      // Get loan product name
+      const loanProductName = loanConnection.loan_product?.name || "Your Loan Product";
+
+      // Generate lender dashboard link
+      const dashboardLink = `${getLenderURL()}/dashboard/term-sheets`;
+
+      // Send the email (no borrower personal details included)
+      await emailService.sendTermSheetRequestEmail(
+        loanConnection.lender.email,
+        loanConnection.lender.name,
+        loanProductName,
+        loanTypeDisplay,
+        propertyAddress,
+        formattedAmount,
+        dashboardLink
+      );
+
+      console.log(`Term sheet request email sent to ${loanConnection.lender.email}`);
+    } catch (emailError) {
+      // Log the error but don't fail the request
+      console.error("Error sending term sheet request email:", emailError);
+      // Continue - email failure shouldn't prevent connection creation
+    }
 
     res.status(201).json(loanConnection);
   } catch (error) {
@@ -482,7 +536,7 @@ export const getLoanConnectionsByLender = async (
           search: req.query.search as string,
           searchFields: ["employee.name", "user.name", "quote.address"],
         },
-        where: { lender_id: id, term_sheet_status: TermSheetStatus.awaiting },
+        where: { lender_id: id, term_sheet_status: req.query.status as TermSheetStatus },
         include: {
           lender: {
             select: {
@@ -843,6 +897,33 @@ export const getLoanConnectionsForEmployee = async (
     res.status(200).json(result);
   } catch (error) {
     console.error("Error getting loan connections by employee:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+export const rejectLoanConnection = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const {by, reason} = req.body
+    if(!by){
+      res.status(400).json({error:"Please provide by"})
+    }
+    const connectionId = parseInt(id);
+    await prisma.loan_Connection.update({
+      where: { id: connectionId },
+      data: { term_sheet_status: TermSheetStatus.closed },
+    });
+    await prisma.loanConnectionClosedLog.create({
+      data: {
+        loan_connection_id: connectionId,
+        closed_by: by,
+        closed_reason: reason,
+      },
+    });
+    res.status(200).json({ message: "Loan connection rejected successfully" });
+  } catch (error) {
+    console.error("Error rejecting loan connection:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
