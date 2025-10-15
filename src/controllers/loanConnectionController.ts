@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { PrismaClient, TermSheetStatus } from "@prisma/client";
+import { PrismaClient, TermSheetStatus, UniversalTermSheetStatus } from "@prisma/client";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { PaginationService } from "../utils/pagination";
 import { z } from "zod";
@@ -588,6 +588,72 @@ export const getLoanConnectionsByLender = async (
     res.status(500).json({ error: "Internal server error" });
   }
 };
+export const getLoanConnectionsForApplicant = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const applicantId = (req.user as any).id;
+    const id = parseInt(applicantId);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid applicant ID" });
+    }
+
+    // Check if lender exists
+    const applicant = await prisma.user.findUnique({ where: { id } });
+    if (!applicant) {
+      return res.status(404).json({ error: "Applicant not found" });
+    }
+
+    const result = await PaginationService.paginate(
+      prisma.loan_Connection,
+      req,
+      {
+        pagination: {
+          page: req.query.page as string,
+          limit: req.query.limit as string,
+        },
+        search: {
+          search: req.query.search as string,
+          searchFields: ["employee.name", "user.name", "quote.address"],
+        },
+        where: { user_id: id, term_sheet_status: req.query.status as TermSheetStatus },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          employee: false,
+          lender: false,
+          quote: {
+            include: {
+              quoteApplicantInfo: true,
+              quoteLoanDetails: true,
+              quoteRentalInfo: true,
+              quotePriorities: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { created_at: "desc" },
+      }
+    );
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error getting loan connections by lender:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
 
 /**
  * Get loan connections by quote ID
@@ -921,9 +987,77 @@ export const rejectLoanConnection = async (req: Request, res: Response) => {
         closed_reason: reason,
       },
     });
+    
+    // Close all associated universal term sheets
+    await prisma.universalTermSheet.updateMany({
+      where: { loan_connection_id: connectionId },
+      data: { status: UniversalTermSheetStatus.closed },
+    });
+    
     res.status(200).json({ message: "Loan connection rejected successfully" });
   } catch (error) {
     console.error("Error rejecting loan connection:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const approveLoanConnection = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const connectionId = parseInt(id);
+    
+    // Fetch the loan connection with its current status
+    const loanConnection = await prisma.loan_Connection.findUnique({
+      where: { id: connectionId },
+      select: { id: true, term_sheet_status: true }
+    });
+    
+    if (!loanConnection) {
+      return res.status(404).json({ error: "Loan connection not found" });
+    }
+    
+    // Validate: status should be pending
+    if (loanConnection.term_sheet_status !== TermSheetStatus.pending) {
+      return res.status(400).json({ 
+        error: "Loan connection status must be pending to approve" 
+      });
+    }
+    
+    // Fetch all term sheets for this connection
+    const termSheets = await prisma.universalTermSheet.findMany({
+      where: { loan_connection_id: connectionId },
+      select: { status: true }
+    });
+    
+    // Validate: at least one term sheet must be approved
+    const hasApprovedTermSheet = termSheets.some(
+      ts => ts.status === UniversalTermSheetStatus.approved
+    );
+    
+    if (!hasApprovedTermSheet) {
+      return res.status(400).json({ 
+        error: "At least one lender term sheet must be approved before approving the loan connection" 
+      });
+    }
+    
+    // All validations passed, update the loan connection
+    await prisma.loan_Connection.update({
+      where: { id: connectionId },
+      data: { term_sheet_status: TermSheetStatus.available },
+    });
+    
+    // Close any awaiting term sheets after approval
+    await prisma.universalTermSheet.updateMany({
+      where: { 
+        loan_connection_id: connectionId,
+        status: UniversalTermSheetStatus.awaiting
+      },
+      data: { status: UniversalTermSheetStatus.closed },
+    });
+    
+    res.status(200).json({ message: "Loan connection approved successfully" });
+  } catch(error) {
+    console.error("Error approving loan connection:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}

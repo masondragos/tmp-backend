@@ -11,6 +11,8 @@ import {
   getLoanConnectionsByEmployee,
   getLoanConnectionsForEmployee,
   rejectLoanConnection,
+  approveLoanConnection,
+  getLoanConnectionsForApplicant,
 } from '../controllers/loanConnectionController';
 import { verifyJWT } from '../middleware/auth';
 import { requireEmployee } from '../middleware/adminAuth';
@@ -36,6 +38,7 @@ router.delete('/:id', deleteLoanConnection);
 router.get('/', getLoanConnections);
 // Get loan connections by lender ID
 router.get('/lender', getLoanConnectionsByLender);
+router.get('/applicant', getLoanConnectionsForApplicant);
 
 // Get loan connection by quote ID (1-1 relationship)
 router.get('/quote/:quoteId', getLoanConnectionByQuote);
@@ -48,7 +51,7 @@ router.get('/:id', getLoanConnection);
 // Employee routes - must be before /:id route
 router.use(requireEmployee);
 router.get('/employee/:employeeId', getLoanConnectionsByEmployee);
-
+router.put('/approve/:id', approveLoanConnection);
 // Create a new loan connection
 router.post('/', createLoanConnection);
 

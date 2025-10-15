@@ -224,7 +224,7 @@ export const updateQuoteApplicantInfo = async (req: Request, res: Response) => {
 
 export const createQuoteLoanDetails = async (req: Request, res: Response) => {
   try {
-    const { purpose_of_loan, has_rehab_funds_requested, quote_id, has_tenant } =
+    const { purpose_of_loan, has_rehab_funds_requested, quote_id, has_tenant, has_completed_any_rehab } =
       req.body;
     const quoteId = parseInt(quote_id);
     const quote = await prisma.quote.findUnique({ where: { id: quoteId }, include:{quoteApplicantInfo:true} });
@@ -244,9 +244,10 @@ export const createQuoteLoanDetails = async (req: Request, res: Response) => {
       });
       return res.status(201).json(quoteLoanDetails);
     } else if (quote.loan_type === "dscr_rental") {
+      
       const body = getDSCRLoanDetailsSchema({
         purpose_of_loan,
-        has_rehab_funds_requested,
+        has_completed_any_rehab,
         has_tenant,
       }).safeParse(req.body);
       if (!body.success) {
@@ -265,7 +266,7 @@ export const createQuoteLoanDetails = async (req: Request, res: Response) => {
 
 export const updateQuoteLoanDetails = async (req: Request, res: Response) => {
   try {
-    const { purpose_of_loan, has_rehab_funds_requested, quote_id, has_tenant } =
+    const { purpose_of_loan, has_rehab_funds_requested,has_completed_any_rehab, quote_id, has_tenant } =
       req.body;
     const quoteId = parseInt(quote_id);
     const quote = await prisma.quote.findUnique({ where: { id: quoteId }, include:{quoteApplicantInfo:true} });
@@ -288,7 +289,7 @@ export const updateQuoteLoanDetails = async (req: Request, res: Response) => {
     } else {
       const body = getDSCRLoanDetailsSchema({
         purpose_of_loan,
-        has_rehab_funds_requested,
+        has_completed_any_rehab,
         has_tenant,
       }).safeParse(req.body);
       if (!body.success) {

@@ -93,6 +93,9 @@ model Quote_Loan_Details {
   what_needs_to_be_done           String?
   how_will_you_fund_this          String?
   rehab_amount_requested          String?
+  has_completed_any_rehab         Boolean?
+  how_much_was_spent_on_rehab     String?
+  what_was_done_on_rehab          String?
   quote                           Quote     @relation("QuoteToLoanDetails", fields: [quote_id], references: [id])
 }
 
@@ -182,22 +185,22 @@ model LoanCriteria {
 }
 
 model Loan_Connection {
-  id                    Int                       @id @default(autoincrement())
-  created_at            DateTime                  @default(now())
-  updated_at            DateTime                  @updatedAt
+  id                    Int                      @id @default(autoincrement())
+  created_at            DateTime                 @default(now())
+  updated_at            DateTime                 @updatedAt
   lender_id             Int
-  lender                Lender                    @relation(fields: [lender_id], references: [id])
+  lender                Lender                   @relation(fields: [lender_id], references: [id])
   employee_id           Int
-  employee              Employee                  @relation(fields: [employee_id], references: [id])
+  employee              Employee                 @relation(fields: [employee_id], references: [id])
   loan_product_id       Int?
-  loan_product          LoanProduct?              @relation(fields: [loan_product_id], references: [id])
+  loan_product          LoanProduct?             @relation(fields: [loan_product_id], references: [id])
   user_id               Int
-  user                  User                      @relation(fields: [user_id], references: [id])
+  user                  User                     @relation(fields: [user_id], references: [id])
   quote_id              Int
-  quote                 Quote                     @relation(fields: [quote_id], references: [id])
-  term_sheet_status     TermSheetStatus?          @default(awaiting)
+  quote                 Quote                    @relation(fields: [quote_id], references: [id])
+  term_sheet_status     TermSheetStatus?         @default(awaiting)
   universal_term_sheets UniversalTermSheet[]
-  closedLog             LoanConnectionClosedLog?  @relation("LoanConnectionToClosedLog")
+  closedLog             LoanConnectionClosedLog? @relation("LoanConnectionToClosedLog")
 }
 
 model LoanConnectionClosedLog {
@@ -217,24 +220,22 @@ model UniversalTermSheet {
   loan_product_id    Int?
   loan_connection_id Int?
 
-  loan_amount       Decimal?
-  interest_rate     Float?
-  term_months       Int?
-  origination_fee   Decimal?
-  appraisal_fees    Decimal?
-  total_lender_fees Decimal?
-  dscr              Float?
-  arv_estimate      Decimal?
-  exit_strategy     String?
-  status            String?
-
-  quote           Quote            @relation(fields: [quote_id], references: [id])
-  lender          Lender           @relation(fields: [lender_id], references: [id])
-  loan_product    LoanProduct?     @relation(fields: [loan_product_id], references: [id])
-  loan_connection Loan_Connection? @relation(fields: [loan_connection_id], references: [id])
+  term_sheet_data Json?
+  status          UniversalTermSheetStatus? @default(awaiting)
+  quote           Quote                     @relation(fields: [quote_id], references: [id])
+  lender          Lender                    @relation(fields: [lender_id], references: [id])
+  loan_product    LoanProduct?              @relation(fields: [loan_product_id], references: [id])
+  loan_connection Loan_Connection?          @relation(fields: [loan_connection_id], references: [id])
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+}
+
+enum UniversalTermSheetStatus {
+  awaiting
+  approved
+  closed
+  signed
 }
 
 enum Role {

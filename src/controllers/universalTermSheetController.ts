@@ -1,5 +1,9 @@
 import { Request, Response } from "express";
-import { PrismaClient, TermSheetStatus } from "@prisma/client";
+import {
+  PrismaClient,
+  TermSheetStatus,
+  UniversalTermSheetStatus,
+} from "@prisma/client";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { z } from "zod";
 import { PaginationService } from "../utils/pagination";
@@ -13,193 +17,136 @@ const baseTermSheetSchema = z.object({
   loan_product_id: z.number().int().positive().optional(),
   loan_connection_id: z.number().int().positive().optional(),
 
-  loan_amount: z.string().or(z.number()).optional(),
-  interest_rate: z.number().optional(),
-  term_months: z.number().int().positive().optional(),
-  origination_fee: z.string().or(z.number()).optional(),
-  appraisal_fees: z.string().or(z.number()).optional(),
-  total_lender_fees: z.string().or(z.number()).optional(),
-  dscr: z.number().optional(),
-  arv_estimate: z.string().or(z.number()).optional(),
-  exit_strategy: z.string().optional(),
-  status: z.string().optional(),
+  term_sheet_data: z.string().optional(),
 });
 
-// New: top-level schema requiring common IDs once
-const bulkCreateWithCommonIdsSchema = z.object({
+// Schema requiring common IDs at top-level
+const bulkCreateSchema = z.object({
   quote_id: z.number().int().positive(),
   lender_id: z.number().int().positive(),
   loan_product_id: z.number().int().positive().optional(),
   loan_connection_id: z.number().int().positive().optional(),
-  items: z.array(baseTermSheetSchema).min(1),
-});
-
-// Back-compat: allow items where each object has the IDs
-const bulkCreateSchema = z.object({
-  items: z.array(
-    baseTermSheetSchema.extend({
-      quote_id: z.number().int().positive(),
-      lender_id: z.number().int().positive(),
-    })
-  ).min(1),
+  items: z
+    .array(
+      baseTermSheetSchema.omit({
+        quote_id: true,
+        lender_id: true,
+        loan_product_id: true,
+        loan_connection_id: true,
+      })
+    )
+    .min(1),
 });
 
 const updateSchema = baseTermSheetSchema.partial();
 
-export const createUniversalTermSheets = async (req: Request, res: Response) => {
+export const createUniversalTermSheets = async (
+  req: Request,
+  res: Response
+) => {
   try {
-    // Normalize request shape: accept either array or object with items
-    const normalized = Array.isArray(req.body) ? { items: req.body } : req.body;
-
-    // Try new schema with top-level common IDs first
-    const withCommon = bulkCreateWithCommonIdsSchema.safeParse(normalized);
-    let items: z.infer<typeof baseTermSheetSchema>[] = [];
-    let commonIds: { quote_id: number; lender_id: number; loan_product_id?: number; loan_connection_id?: number } | null = null;
-
-    if (withCommon.success) {
-      commonIds = {
-        quote_id: withCommon.data.quote_id,
-        lender_id: withCommon.data.lender_id,
-        loan_product_id: withCommon.data.loan_product_id,
-        loan_connection_id: withCommon.data.loan_connection_id,
-      };
-      // Merge common IDs into each item, validate consistency if provided in item
-      items = withCommon.data.items.map((i) => {
-        if (i.quote_id && i.quote_id !== commonIds!.quote_id) {
-          throw new Error("Item quote_id must match top-level quote_id");
-        }
-        if (i.lender_id && i.lender_id !== commonIds!.lender_id) {
-          throw new Error("Item lender_id must match top-level lender_id");
-        }
-        if (
-          i.loan_product_id &&
-          commonIds!.loan_product_id &&
-          i.loan_product_id !== commonIds!.loan_product_id
-        ) {
-          throw new Error("Item loan_product_id must match top-level loan_product_id");
-        }
-        if (
-          i.loan_connection_id &&
-          commonIds!.loan_connection_id &&
-          i.loan_connection_id !== commonIds!.loan_connection_id
-        ) {
-          throw new Error("Item loan_connection_id must match top-level loan_connection_id");
-        }
-        return {
-          ...i,
-          quote_id: commonIds!.quote_id,
-          lender_id: commonIds!.lender_id,
-          loan_product_id: commonIds!.loan_product_id ?? i.loan_product_id,
-          loan_connection_id: commonIds!.loan_connection_id ?? i.loan_connection_id,
-        };
-      });
-    } else {
-      // Fallback: require IDs inside each item
-      const withPerItemIds = bulkCreateSchema.safeParse(normalized);
-      if (!withPerItemIds.success) {
-        return res.status(400).json({ error: withCommon.error.message });
-      }
-      items = withPerItemIds.data.items;
-      // Optionally infer common IDs for connection status update
-      const qIds = new Set<number>(items.map(i => i.quote_id!));
-      const lIds = new Set<number>(items.map(i => i.lender_id!));
-      const lpIds = new Set<number>(items.map(i => i.loan_product_id!).filter((v): v is number => !!v));
-      const lcIds = new Set<number>(items.map(i => i.loan_connection_id!).filter((v): v is number => !!v));
-      if (qIds.size === 1 && lIds.size === 1) {
-        commonIds = {
-          quote_id: Array.from(qIds)[0]!,
-          lender_id: Array.from(lIds)[0]!,
-          loan_product_id: lpIds.size === 1 ? Array.from(lpIds)[0] : undefined,
-          loan_connection_id: lcIds.size === 1 ? Array.from(lcIds)[0] : undefined,
-        };
-      }
+    // Validate request body
+    const validated = bulkCreateSchema.safeParse(req.body);
+    if (!validated.success) {
+      return res.status(400).json({ error: validated.error.message });
     }
 
-    // Validate referenced entities exist (best-effort batch check)
-    const uniqueQuoteIds = Array.from(new Set(items.map(i => i.quote_id!)));
-    const uniqueLenderIds = Array.from(new Set(items.map(i => i.lender_id!)));
-    const uniqueLoanProductIds = Array.from(new Set(items.map(i => i.loan_product_id).filter(Boolean) as number[]));
-    const uniqueLoanConnectionIds = Array.from(new Set(items.map(i => i.loan_connection_id).filter(Boolean) as number[]));
+    const { quote_id, lender_id, loan_product_id, loan_connection_id, items } =
+      validated.data;
 
-    const [quotes, lenders, loanProducts, loanConnections] = await Promise.all([
-      prisma.quote.findMany({ where: { id: { in: uniqueQuoteIds } }, select: { id: true } }),
-      prisma.lender.findMany({ where: { id: { in: uniqueLenderIds } }, select: { id: true } }),
-      uniqueLoanProductIds.length ? prisma.loanProduct.findMany({ where: { id: { in: uniqueLoanProductIds } }, select: { id: true } }) : Promise.resolve([]),
-      uniqueLoanConnectionIds.length ? prisma.loan_Connection.findMany({ where: { id: { in: uniqueLoanConnectionIds } }, select: { id: true } }) : Promise.resolve([]),
+    // Merge common IDs into each item
+    const itemsWithIds = items.map((item) => ({
+      ...item,
+      quote_id,
+      lender_id,
+      loan_product_id: loan_product_id ?? undefined,
+      loan_connection_id: loan_connection_id ?? undefined,
+    }));
+
+    // Validate referenced entities exist
+    const [quote, lender, loanProduct, loanConnection] = await Promise.all([
+      prisma.quote.findUnique({
+        where: { id: quote_id },
+        select: { id: true },
+      }),
+      prisma.lender.findUnique({
+        where: { id: lender_id },
+        select: { id: true },
+      }),
+      loan_product_id
+        ? prisma.loanProduct.findUnique({
+            where: { id: loan_product_id },
+            select: { id: true },
+          })
+        : Promise.resolve(null),
+      loan_connection_id
+        ? prisma.loan_Connection.findUnique({
+            where: { id: loan_connection_id },
+            select: { id: true },
+          })
+        : Promise.resolve(null),
     ]);
 
-    const quoteIdSet = new Set(quotes.map(q => q.id));
-    const lenderIdSet = new Set(lenders.map(l => l.id));
-    const loanProductIdSet = new Set(loanProducts.map(lp => lp.id));
-    const loanConnectionIdSet = new Set(loanConnections.map(lc => lc.id));
-
-    for (const item of items) {
-      if (!quoteIdSet.has(item.quote_id!)) {
-        return res.status(400).json({ error: `Quote not found: ${item.quote_id}` });
-      }
-      if (!lenderIdSet.has(item.lender_id!)) {
-        return res.status(400).json({ error: `Lender not found: ${item.lender_id}` });
-      }
-      if (item.loan_product_id && !loanProductIdSet.has(item.loan_product_id)) {
-        return res.status(400).json({ error: `Loan product not found: ${item.loan_product_id}` });
-      }
-      if (item.loan_connection_id && !loanConnectionIdSet.has(item.loan_connection_id)) {
-        return res.status(400).json({ error: `Loan connection not found: ${item.loan_connection_id}` });
-      }
+    if (!quote) {
+      return res.status(400).json({ error: `Quote not found: ${quote_id}` });
+    }
+    if (!lender) {
+      return res.status(400).json({ error: `Lender not found: ${lender_id}` });
+    }
+    if (loan_product_id && !loanProduct) {
+      return res
+        .status(400)
+        .json({ error: `Loan product not found: ${loan_product_id}` });
+    }
+    if (loan_connection_id && !loanConnection) {
+      return res
+        .status(400)
+        .json({ error: `Loan connection not found: ${loan_connection_id}` });
     }
 
     const created = await prisma.$transaction(
-      items.map((item) =>
+      itemsWithIds.map((item) =>
         prisma.universalTermSheet.create({
           data: {
             // relations via connect
-            quote: { connect: { id: item.quote_id! } },
-            lender: { connect: { id: item.lender_id! } },
+            quote: { connect: { id: item.quote_id } },
+            lender: { connect: { id: item.lender_id } },
             ...(item.loan_product_id
               ? { loan_product: { connect: { id: item.loan_product_id } } }
               : {}),
             ...(item.loan_connection_id
-              ? { loan_connection: { connect: { id: item.loan_connection_id } } }
+              ? {
+                  loan_connection: { connect: { id: item.loan_connection_id } },
+                }
               : {}),
-            // scalar fields
-            loan_amount: item.loan_amount as any,
-            interest_rate: item.interest_rate,
-            term_months: item.term_months,
-            origination_fee: item.origination_fee as any,
-            appraisal_fees: item.appraisal_fees as any,
-            total_lender_fees: item.total_lender_fees as any,
-            dscr: item.dscr,
-            arv_estimate: item.arv_estimate as any,
-            exit_strategy: item.exit_strategy,
-            status: item.status,
+            // JSON field for term sheet data
+            term_sheet_data: item.term_sheet_data as any,
           },
         })
       )
     );
 
     // Update related loan connection status to available
-    if (commonIds) {
-      if (commonIds.loan_connection_id) {
+    if (loan_connection_id) {
+      await prisma.loan_Connection.update({
+        where: { id: loan_connection_id },
+        data: { term_sheet_status: TermSheetStatus.pending },
+      });
+    } else {
+      // Try to find a matching loan connection using provided IDs
+      const found = await prisma.loan_Connection.findFirst({
+        where: {
+          quote_id,
+          lender_id,
+          ...(loan_product_id ? { loan_product_id } : {}),
+        },
+        select: { id: true },
+      });
+      if (found) {
         await prisma.loan_Connection.update({
-          where: { id: commonIds.loan_connection_id },
+          where: { id: found.id },
           data: { term_sheet_status: TermSheetStatus.available },
         });
-      } else {
-        // Try to find a matching loan connection using provided common IDs
-        const found = await prisma.loan_Connection.findFirst({
-          where: {
-            quote_id: commonIds.quote_id,
-            lender_id: commonIds.lender_id,
-            ...(commonIds.loan_product_id ? { loan_product_id: commonIds.loan_product_id } : {}),
-          },
-          select: { id: true },
-        });
-        if (found) {
-          await prisma.loan_Connection.update({
-            where: { id: found.id },
-            data: { term_sheet_status: TermSheetStatus.available },
-          });
-        }
       }
     }
 
@@ -231,18 +178,31 @@ export const getUniversalTermSheets = async (req: Request, res: Response) => {
   }
 };
 
-export const getUniversalTermSheetsByQuote = async (req: Request, res: Response) => {
+export const getUniversalTermSheetsByQuote = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const quoteId = parseInt(req.params.quoteId);
+    const connectionId = parseInt(req.params.connectionId);
     if (isNaN(quoteId)) {
       return res.status(400).json({ error: "Invalid quote ID" });
+    }
+    if (isNaN(connectionId)) {
+      return res.status(400).json({ error: "Invalid connection ID" });
     }
     const exists = await prisma.quote.findUnique({ where: { id: quoteId } });
     if (!exists) {
       return res.status(404).json({ error: "Quote not found" });
     }
+    const connection = await prisma.loan_Connection.findUnique({
+      where: { id: connectionId },
+    });
+    if (!connection) {
+      return res.status(404).json({ error: "Connection not found" });
+    }
     const termSheets = await prisma.universalTermSheet.findMany({
-      where: { quote_id: quoteId },
+      where: { quote_id: quoteId, loan_connection_id: connectionId },
       orderBy: { created_at: "desc" },
     });
     return res.status(200).json(termSheets);
@@ -252,7 +212,10 @@ export const getUniversalTermSheetsByQuote = async (req: Request, res: Response)
   }
 };
 
-export const getUniversalTermSheetsByLender = async (req: Request, res: Response) => {
+export const getUniversalTermSheetsByLender = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const lenderId = parseInt(req.params.lenderId);
     if (isNaN(lenderId)) {
@@ -273,13 +236,18 @@ export const getUniversalTermSheetsByLender = async (req: Request, res: Response
   }
 };
 
-export const getUniversalTermSheetsByLoanConnection = async (req: Request, res: Response) => {
+export const getUniversalTermSheetsByLoanConnection = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const connectionId = parseInt(req.params.connectionId);
     if (isNaN(connectionId)) {
       return res.status(400).json({ error: "Invalid connection ID" });
     }
-    const exists = await prisma.loan_Connection.findUnique({ where: { id: connectionId } });
+    const exists = await prisma.loan_Connection.findUnique({
+      where: { id: connectionId },
+    });
     if (!exists) {
       return res.status(404).json({ error: "Loan connection not found" });
     }
@@ -294,30 +262,61 @@ export const getUniversalTermSheetsByLoanConnection = async (req: Request, res: 
   }
 };
 
-export const updateUniversalTermSheet = async (req: Request, res: Response) => {
-  try {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ error: "Invalid term sheet ID" });
-    }
-    const body = updateSchema.safeParse(req.body);
-    if (!body.success) {
-      return res.status(400).json({ error: body.error.message });
-    }
-    const existing = await prisma.universalTermSheet.findUnique({ where: { id } });
-    if (!existing) {
-      return res.status(404).json({ error: "Universal term sheet not found" });
-    }
-    const updated = await prisma.universalTermSheet.update({
-      where: { id },
-      data: body.data,
-    });
-    return res.status(200).json(updated);
-  } catch (error) {
-    console.error("Error updating universal term sheet:", error);
-    return res.status(500).json({ error: "Internal server error" });
-  }
-};
+// export const updateUniversalTermSheet = async (req: Request, res: Response) => {
+//   try {
+//     const id = parseInt(req.params.id);
+//     if (isNaN(id)) {
+//       return res.status(400).json({ error: "Invalid term sheet ID" });
+//     }
+//     const body = updateSchema.safeParse(req.body);
+//     if (!body.success) {
+//       return res.status(400).json({ error: body.error.message });
+//     }
+//     const existing = await prisma.universalTermSheet.findUnique({ where: { id } });
+//     if (!existing) {
+//       return res.status(404).json({ error: "Universal term sheet not found" });
+//     }
+
+//     // Build update data object
+//     const updateData: any = {};
+//     if (body.data.term_sheet_data !== undefined) {
+//       updateData.term_sheet_data = body.data.term_sheet_data;
+//     }
+//     if (body.data.status !== undefined) {
+//       updateData.status = body.data.status;
+//     }
+//     // Handle relation updates if provided
+//     if (body.data.quote_id !== undefined) {
+//       updateData.quote = { connect: { id: body.data.quote_id } };
+//     }
+//     if (body.data.lender_id !== undefined) {
+//       updateData.lender = { connect: { id: body.data.lender_id } };
+//     }
+//     if (body.data.loan_product_id !== undefined) {
+//       if (body.data.loan_product_id === null) {
+//         updateData.loan_product = { disconnect: true };
+//       } else {
+//         updateData.loan_product = { connect: { id: body.data.loan_product_id } };
+//       }
+//     }
+//     if (body.data.loan_connection_id !== undefined) {
+//       if (body.data.loan_connection_id === null) {
+//         updateData.loan_connection = { disconnect: true };
+//       } else {
+//         updateData.loan_connection = { connect: { id: body.data.loan_connection_id } };
+//       }
+//     }
+
+//     const updated = await prisma.universalTermSheet.update({
+//       where: { id },
+//       data: updateData,
+//     });
+//     return res.status(200).json(updated);
+//   } catch (error) {
+//     console.error("Error updating universal term sheet:", error);
+//     return res.status(500).json({ error: "Internal server error" });
+//   }
+// };
 
 export const deleteUniversalTermSheet = async (req: Request, res: Response) => {
   try {
@@ -325,7 +324,9 @@ export const deleteUniversalTermSheet = async (req: Request, res: Response) => {
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid term sheet ID" });
     }
-    const existing = await prisma.universalTermSheet.findUnique({ where: { id } });
+    const existing = await prisma.universalTermSheet.findUnique({
+      where: { id },
+    });
     if (!existing) {
       return res.status(404).json({ error: "Universal term sheet not found" });
     }
@@ -337,4 +338,75 @@ export const deleteUniversalTermSheet = async (req: Request, res: Response) => {
   }
 };
 
+export const updateTermSheetStatus = async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid term sheet ID" });
+    }
+    const { status } = req.body;
+    var tuUpdateStatus: UniversalTermSheetStatus;
+    if (status === "approved") {
+      tuUpdateStatus = UniversalTermSheetStatus.approved;
+    } else if (status === "rejected") {
+      tuUpdateStatus = UniversalTermSheetStatus.closed;
+    } else {
+      return res.status(400).json({ error: "Invalid status" });
+    }
 
+    // Get the term sheet to find its loan_connection_id
+    const termSheet = await prisma.universalTermSheet.findUnique({
+      where: { id },
+      select: { loan_connection_id: true },
+    });
+
+    if (!termSheet) {
+      return res.status(404).json({ error: "Universal term sheet not found" });
+    }
+
+    // Update the term sheet status
+    await prisma.universalTermSheet.update({
+      where: { id },
+      data: { status: tuUpdateStatus },
+    });
+
+    // If this term sheet has a loan_connection, update its status based on all term sheets
+    if (termSheet.loan_connection_id) {
+      // Get all term sheets for this loan connection
+      const allTermSheets = await prisma.universalTermSheet.findMany({
+        where: { loan_connection_id: termSheet.loan_connection_id },
+        select: { status: true },
+      });
+
+      // Check if all are approved
+      const allApproved = allTermSheets.every(
+        (ts) => ts.status === UniversalTermSheetStatus.approved
+      );
+
+      // Check if all are closed
+      const allClosed = allTermSheets.every(
+        (ts) => ts.status === UniversalTermSheetStatus.closed
+      );
+
+      // Update loan_connection term_sheet_status
+      if (allApproved) {
+        await prisma.loan_Connection.update({
+          where: { id: termSheet.loan_connection_id },
+          data: { term_sheet_status: TermSheetStatus.available },
+        });
+      } else if (allClosed) {
+        await prisma.loan_Connection.update({
+          where: { id: termSheet.loan_connection_id },
+          data: { term_sheet_status: TermSheetStatus.closed },
+        });
+      }
+    }
+
+    return res
+      .status(200)
+      .json({ message: "Universal term sheet status updated" });
+  } catch (error) {
+    console.error("Error updating term sheet status:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};

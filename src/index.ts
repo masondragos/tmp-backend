@@ -8,6 +8,7 @@ import express from "express";
 import session from "express-session";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import multer from "multer";
 import passport from "./auth";
 import { initializeGoogleStrategy } from "./auth";
 import { getCookieOptions } from "./utils/cookies";
@@ -22,6 +23,15 @@ import loanConnectionRoutes from "./routes/loanConnectionRoutes";
 import loanProductRoutes from "./routes/loanProductRoutes";
 import universalTermSheetRoutes from "./routes/universalTermSheetRoutes";
 import openaiTestRoutes from "./routes/openaiTestRoutes";
+
+// Import controllers
+import { parsePDF } from "./controllers/pdfParserController";
+
+// Configure multer for file uploads
+const upload = multer({ 
+  storage: multer.memoryStorage(), 
+  limits: { fileSize: 1 * 1024 * 1024 } // 1MB limit
+});
 
 const app = express();
 
@@ -69,8 +79,13 @@ app.use("/api/v1/employee", employeeRoutes);
 app.use("/api/v1/lender", lenderRoutes);
 app.use("/api/v1/loan-connections", loanConnectionRoutes);
 app.use("/api/v1/loan-products", loanProductRoutes);
-app.use("/api/v1/universal-term-sheets", universalTermSheetRoutes);
+app.use("/api/v1/term-sheets", universalTermSheetRoutes);
 app.use("/api/v1/openai-test", openaiTestRoutes);
+
+
+
+// PDF parsing route with multer middleware
+app.post("/api/v1/parse-pdf", upload.single('file'), parsePDF);
 
 app.get("/ping", (req, res) => {
   res.status(200).json({ message: "pong" });
