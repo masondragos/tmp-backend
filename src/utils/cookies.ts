@@ -16,7 +16,8 @@ export interface UserInfo {
   avatar?: string | null
 }
 
-const isProduction = process.env.NODE_ENV === 'production'
+// const isProduction = process.env.NODE_ENV === 'production'
+const isProduction = false
 
 const defaultCookieOptions: CookieOptions = {
   httpOnly: false, // Allow frontend access to cookies
