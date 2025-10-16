@@ -41,10 +41,12 @@ app.use(
     origin: [
       "http://localhost:3000",
       "http://localhost:3001",
-      "https://mortgage-broker-app.vercel.app",
+      "http://localhost:3002",
       "https://www.themortgageplatform.com",
       "https://themortgageplatform.com",
       "https://api.themortgageplatform.com",
+      "https://admin.themortgageplatform.com",
+      "https://lender.themortgageplatform.com",
     ],
     credentials: true, // Allow cookies to be sent
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
